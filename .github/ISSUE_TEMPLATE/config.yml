@@ -1,5 +1,5 @@
-blank_issues_enabled: true
+blank_issues_enabled: false
 contact_links:
   - name: Security report
-    url: https://github.com/francescoveryra-dot/IAF-Agent-Bridge/security
-    about: Report a vulnerability privately. See SECURITY.md.
+    url: https://github.com/francescoveryra-dot/IAF-Agent-Bridge/security/advisories/new
+    about: Report a vulnerability in private. Do not open a public issue for it.

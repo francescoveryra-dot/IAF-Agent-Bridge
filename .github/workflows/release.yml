@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing tag to describe in a GitHub release, for example v1.0.0"
+        description: "Existing tag, for example v1.0.0"
         required: true
         type: string
       create_github_release:
@@ -12,6 +12,9 @@ on:
         required: true
         type: boolean
         default: false
+
+permissions:
+  contents: read
 
 jobs:
   verify:
@@ -24,9 +27,19 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - name: Build, pack, and write an SBOM
+        run: |
+          npm ci
+          npm test
+          npm pack
+          npm sbom --omit=dev --sbom-format cyclonedx > sbom.cdx.json
+          sha256sum iaf-agent-bridge-*.tgz sbom.cdx.json > SHA256SUMS
       - name: Create the GitHub release from the changelog
         env:
           GH_TOKEN: ${{ github.token }}
@@ -36,14 +49,14 @@ jobs:
             v[0-9]*) ;;
             *) echo "tag must look like v1.2.3" >&2; exit 1 ;;
           esac
-          git rev-parse "$TAG" >/dev/null
+          git rev-parse "refs/tags/$TAG" >/dev/null
           version="${TAG#v}"
           awk -v ver="$version" '
-            index($0, "## " ver) == 1 { found = 1; next }
+            $0 ~ "^## " ver "($| )" { found = 1; next }
             found && /^## / { exit }
             found { print }
           ' CHANGELOG.md > notes.md
           if ! grep -q '[^[:space:]]' notes.md; then
             echo "See CHANGELOG.md." > notes.md
           fi
-          gh release create "$TAG" --verify-tag --title "$TAG" --notes-file notes.md
+          gh release create "$TAG" --verify-tag --title "$TAG" --notes-file notes.md iaf-agent-bridge-*.tgz sbom.cdx.json SHA256SUMS

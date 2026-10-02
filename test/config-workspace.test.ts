@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -27,6 +27,9 @@ test("workspace must be an existing project directory", () => {
   assert.throws(() => assertWorkspace(join(dir, "missing")), (err: unknown) => err instanceof BridgeError && err.reason === "invalid-workspace");
   assert.throws(() => assertWorkspace("/"), /filesystem root/);
   assert.throws(() => assertWorkspace(homedir()), /home directory/);
+  const link = join(dir, "link-home");
+  symlinkSync(homedir(), link);
+  assert.throws(() => assertWorkspace(link), /home directory/);
 });
 
 test("project context files are reported only when they exist", () => {

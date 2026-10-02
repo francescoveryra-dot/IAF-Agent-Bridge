@@ -1,172 +1,116 @@
 # IAF Agent Bridge
 
-IAF Agent Bridge is an MCP server that lets a supervisor such as Codex or ChatGPT send work to Cursor Agent and continue the same Cursor session until the requested work is done.
+MCP server that lets Codex, Claude Code, or another stdio host send work to Cursor Agent and continue the **same Cursor session** until the requested work is done.
 
-The bridge carries prompts, session identity, and Cursor's reply. It does not replace the supervisor's judgment and it does not turn the loop into a review checklist.
+The bridge carries the prompt, the session, and Cursor's reply. The supervisor decides what happens next. Cursor does the implementation.
+
+**Status:** public source. Version 1.0.0 is not yet published to npm or as a GitHub Release.
+
+[![CI](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/actions/workflows/test.yml/badge.svg)](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](package.json)
 
 ```
-Codex / ChatGPT / another MCP host
+Supervisor (Codex, Claude Code, or another MCP host)
         |
-        | MCP (stdio)
+        | MCP over stdio
         v
 IAF Agent Bridge
         |
-        | ACP (stdio JSON-RPC)
+        | ACP over stdio
         v
 Cursor Agent
         |
         v
-Target repository
+Your repository
 ```
 
-Cursor Agent is the only production executor in V1. The server has an internal executor boundary so another agent can be added later without a second MCP server.
+Cursor Agent is the only production executor. Codex and Claude Code are supervisors. Do not install this server into the Cursor MCP config of a repository that Cursor itself is editing. That loop is refused.
+
+## What you can do
+
+- Start a Cursor session from an MCP host and resume it with `sessionId`.
+- Let ordinary development continue without approving every tool call.
+- Reject force-push, history rewrite, destructive SQL, deletes outside the project, and secret staging unless you explicitly set `IAF_PERMISSION_MODE=allow-all`.
+- Use a Master Prompt when the repository has one. A repository without one works normally.
 
 ## Prerequisites
 
-- Node.js 20 or newer
-- The [Cursor CLI](https://cursor.com/docs/cli/overview), available as `agent` on `PATH`
-- A Cursor login: `agent login`
+- Node.js 20 or newer. Running the test suite needs Node.js 22.
+- The [Cursor CLI](https://cursor.com/docs/cli/overview) on your `PATH` as `agent`.
+- `agent login` completed on that machine.
 
-The bridge does not need an OpenAI API key. Codex uses the ChatGPT login you already have. Cursor uses `agent login`.
+No OpenAI API key is required.
 
-This repository is the source. The npm package name `iaf-agent-bridge` is reserved for a future publish and is not on the registry yet. Install from this clone.
-
-## Install
+## Quick start
 
 ```shell
-git clone git@github.com:francescoveryra-dot/IAF-Agent-Bridge.git
+git clone https://github.com/francescoveryra-dot/IAF-Agent-Bridge.git
 cd IAF-Agent-Bridge
 npm install
 npm run build
-node dist/cli.js --version
 node dist/cli.js doctor
 ```
 
-`doctor` should report the Cursor executable, its version, and `Authenticated: true`. `doctor --deep` also opens a short ACP session. It does not print account details.
+`doctor` should show the Cursor executable and `Authenticated: true`. It does not print your account.
 
-## Codex
+Point your MCP host at:
 
-Add this to `~/.codex/config.toml`. Replace the path with your clone:
-
-```toml
-[mcp_servers.iaf-agent-bridge]
-command = "node"
-args = ["/ABSOLUTE/PATH/IAF-Agent-Bridge/dist/cli.js"]
+```text
+command: node
+args:    /ABSOLUTE/PATH/IAF-Agent-Bridge/dist/cli.js
 ```
 
-Restart Codex. The skill in `skills/iaf-agent-bridge/` tells Codex to read Cursor's reply as a pasted answer and to continue the same session while work remains.
+Replace the path with your clone. Then ask the supervisor to implement the work with Cursor and to call `delegate` again with the returned `sessionId` while requested work remains.
 
-A local plugin manifest is in `.codex-plugin/plugin.json` for hosts that install the repository as a plugin. It launches `node dist/cli.js` from the plugin directory.
+## Install by host
 
-## Claude Code
+| Host | How | Detail |
+| --- | --- | --- |
+| Codex | Plugin manifest in this repo, or `config.toml` | [docs/hosts.md](docs/hosts.md) |
+| Claude Code | `claude mcp add` or the plugin in `.claude-plugin/` | [docs/hosts.md](docs/hosts.md) |
+| Cursor | Plugin manifest for marketplace submission. Do not use it to delegate from Cursor to Cursor. | [docs/marketplaces.md](docs/marketplaces.md) |
+| Any stdio MCP client | `node` + `dist/cli.js` | [docs/installation.md](docs/installation.md) |
 
-```shell
-claude mcp add iaf-agent-bridge -- node /ABSOLUTE/PATH/IAF-Agent-Bridge/dist/cli.js
-```
-
-Or install this repository as a plugin. `.claude-plugin/mcp.json` points at `${CLAUDE_PLUGIN_ROOT}/dist/cli.js`.
-
-## Generic MCP and other hosts
-
-One stdio server serves every host. Use the shape that host expects.
-
-```json
-{
-  "mcpServers": {
-    "iaf-agent-bridge": {
-      "command": "node",
-      "args": ["/ABSOLUTE/PATH/IAF-Agent-Bridge/dist/cli.js"]
-    }
-  }
-}
-```
-
-VS Code and Visual Studio use a `servers` object and `"type": "stdio"`. Zed uses `context_servers`. OpenCode and Kilo use `mcp` with `"type": "local"` and `command` as one array: `["node", "/ABSOLUTE/PATH/IAF-Agent-Bridge/dist/cli.js"]`. JetBrains AI Assistant takes the same command and arguments in its MCP settings. Windsurf uses `~/.codeium/windsurf/mcp_config.json` with the generic `mcpServers` block. Google Antigravity uses `~/.gemini/config/mcp_config.json`. Kiro uses `.kiro/settings/mcp.json`. GitHub Copilot CLI can install this repository as a plugin from `plugin.json`, or use the same stdio command.
-
-## Cursor plugin
-
-`.cursor-plugin/plugin.json` is the Cursor plugin manifest. It includes the skill, commands, a rule that tells Cursor not to delegate to itself, and an MCP server entry. The server still refuses `delegate` when the MCP client is Cursor. Public listing is a manual submission at https://cursor.com/marketplace/publish.
-
-Do not add a project `.cursor/mcp.json` that points this bridge at the repository Cursor is editing.
+npm install (`npx iaf-agent-bridge`) is prepared and not published yet. See [docs/release.md](docs/release.md).
 
 ## Tools
 
-| Tool | Purpose |
+| Tool | Use |
 | --- | --- |
-| `delegate` | Send a prompt, or continue a session with `sessionId`. |
-| `cancel` | Cancel an in-flight turn. `force: true` kills the process after a grace period. |
-| `doctor` | Runtime, Cursor CLI, authentication, and an optional ACP handshake. |
+| `delegate` | Send a prompt. Pass `sessionId` to continue the same Cursor conversation. |
+| `cancel` | Stop an in-flight turn. The session can still be resumed. |
+| `doctor` | Check Node, the bridge, the Cursor CLI, and authentication. |
 
-`delegate` returns JSON. The field that matters first is `result` (Cursor's reply) and `sessionId` (how to continue). The supervisor decides CONTINUE, COMPLETE, or BLOCKED. The bridge does not.
+Example follow-up: the first `delegate` returns `"sessionId": "..."`. The next call uses that id and a prompt that names what is still missing.
 
-## Autonomous execution
+## How the supervisor should behave
 
-Ordinary repository work proceeds without a person approving every tool call. The bridge answers Cursor's `session/request_permission` requests.
+Read `result` as if you had pasted Cursor's reply into the conversation. Then choose one state:
 
-It rejects commands that are outside normal development:
+- **CONTINUE** when requested work remains and Cursor can still do it. This is the normal result. Plans, TODOs, mocks, and missing layers are CONTINUE.
+- **COMPLETE** when the requested work is actually present.
+- **BLOCKED** only for a real external decision, secret, or irreversible authorization.
 
-- force push and history rewrite (`git reset --hard`, `git commit --amend`, filter-branch)
-- shell `DROP` / `TRUNCATE`, unbounded `DELETE`, and data-store flushes
-- recursive deletes that leave the workspace
-- staging or uploading secret files such as `.env`
-- piping a download into a shell
+The bridge does not demand a new lint run, end-to-end suite, or coverage gate after every turn. Details: [docs/supervisor-loop.md](docs/supervisor-loop.md).
 
-Set `IAF_PERMISSION_MODE=allow-all` only when you explicitly want that guard off. A rejection is listed in `permissionDecisions` so the supervisor can continue with a safer command or stop for authorization.
+If the repository contains `MASTER_PROMPT.md` or the other project files listed in [docs/supervisor-loop.md](docs/supervisor-loop.md), the first result names them. If it does not, nothing is created.
 
-In `agent` mode, a Cursor plan request is accepted so implementation continues. In `plan` mode, the plan is captured and implementation is not started.
+## Configuration and troubleshooting
 
-If Cursor asks a blocking question, the bridge records it in `cursorQuestions` and tells Cursor the supervisor will answer on the next prompt. That avoids a deadlock. The supervisor answers from the conversation when it can, and uses BLOCKED only for a real external decision.
+Environment variables: [docs/configuration.md](docs/configuration.md).
 
-## Sessions and project context
-
-Follow-up work should pass the previous `sessionId`. The bridge loads that Cursor session. If the session is gone, the error is `session-not-found`. Start a new session and restate the context that turn still needs. The bridge does not silently discard the old session.
-
-If the workspace contains `MASTER_PROMPT.md`, `PROJECT_SPEC.md`, `ENVIRONMENT.md`, `ARCHITECTURE.md`, `PLAN.md`, or `TRACEABILITY.md`, `delegate` lists them in `projectContextFiles`. The first prompt should tell Cursor to read them. Later prompts stay on the same session and do not need the full text again.
-
-If those files do not exist, nothing is created. A normal prompt is enough.
-
-## Commands
-
-```shell
-node dist/cli.js --version
-node dist/cli.js doctor --json
-node dist/cli.js doctor --deep --workspace /path/to/project
-node dist/cli.js mcp
-```
-
-With no arguments the process is the MCP server. Logs go to stderr. stdout is reserved for MCP.
-
-## Configuration
-
-| Variable | Default |
-| --- | --- |
-| `IAF_CURSOR_AGENT` | discover `agent`, then `cursor-agent` |
-| `IAF_CURSOR_AGENT_ARGS` | `acp` |
-| `IAF_EXECUTOR` | `cursor` |
-| `IAF_PERMISSION_MODE` | `autonomous` |
-| `IAF_TURN_TIMEOUT_MS` | 3600000 |
-| `IAF_HANDSHAKE_TIMEOUT_MS` | 30000 |
-| `IAF_IDLE_TIMEOUT_MS` | 0 (disabled) |
-| `IAF_LOG_LEVEL` | `warn` |
-
-## Troubleshooting
-
-- `cursor-not-found`: install the Cursor CLI and open a new shell so `agent` is on `PATH`.
-- `auth-required`: run `agent login`, then `node dist/cli.js doctor`.
-- `cursor-host-recursion`: remove this server from Cursor's own MCP config.
-- A turn that stops early still has a `sessionId` when the session opened. Resume it. Do not treat a plan or a TODO list as completion.
-
-## Development
-
-```shell
-npm test
-npm run typecheck
-npm run build
-```
+If `doctor` says Cursor was not found, install the CLI and open a new shell. If it says not authenticated, run `agent login`. More cases: [docs/troubleshooting.md](docs/troubleshooting.md).
 
 ## Security
 
-See [SECURITY.md](SECURITY.md). The bridge can edit the workspace you pass to `delegate`. Pass the project directory, not your home directory.
+The bridge can ask Cursor to edit the workspace you name and to run commands there. Read [SECURITY.md](SECURITY.md) and [docs/security-model.md](docs/security-model.md).
+
+Report vulnerabilities privately: [Security advisories](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/security/advisories/new). Do not open a public issue that contains a token, a credential, or a working exploit.
+
+## Contributing
+
+[CONTRIBUTING.md](CONTRIBUTING.md). Issues and pull requests are welcome. Support routes are in [SUPPORT.md](SUPPORT.md).
 
 ## License
 

@@ -1,40 +1,50 @@
-# Security
+# Security policy
 
-IAF Agent Bridge starts Cursor Agent in a directory the MCP client names. Treat `delegate` as able to read and edit that project. The person running the supervisor already has that access. The bridge adds a few boundaries of its own.
+## Supported versions
 
-## What the bridge refuses
+| Version | Supported |
+| --- | --- |
+| 1.0.x on `main` | yes |
+| older tags | none yet; 1.0.0 has not been cut as a GitHub Release |
 
-- Delegating while it is already the child of a Cursor agent it started (`IAF_AGENT_BRIDGE_EXECUTOR=1`).
-- Delegating when the MCP client identifies itself as Cursor.
-- Using the home directory or the filesystem root as `workspace`.
-- Launching the agent through a shell. The executable and arguments are an argv array.
-- Accepting an executable path from the tool call. `IAF_CURSOR_AGENT` is operator configuration, not model input.
-- Autonomous force-push, history rewrite, shell `DROP`/`TRUNCATE`, unbounded `DELETE`, recursive deletes outside the workspace, staging or uploading secret files, and piping a download into a shell.
+## What to report privately
 
-`IAF_PERMISSION_MODE=allow-all` turns off the command guard. Leave it unset unless you mean that.
+Report privately when the issue could let someone:
 
-A rejected permission is returned to the supervisor. It is not swallowed.
+- run commands or edit files outside the workspace the caller named;
+- bypass the destructive-action guard without `IAF_PERMISSION_MODE=allow-all`;
+- steal Cursor credentials, tokens, or private file contents through logs or tool results;
+- make Cursor delegate to itself in a loop that the existing refusal does not stop;
+- compromise the npm package, a plugin hook, or a GitHub Actions workflow.
 
-## What the bridge does not promise
+## What not to put in a public issue
 
-`mode: "plan"` and `mode: "ask"` are instructions to Cursor. They are not a sandbox. Review the workspace when the task is sensitive.
+Do not include tokens, passwords, private keys, `.env` contents, customer data, or a proof of concept that drops or exfiltrates data. Use a private advisory instead.
 
-Cursor may still load MCP servers configured for the target project. Do not point that configuration back at this bridge.
+Ordinary bugs and feature requests belong in [Issues](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/issues).
 
-The bridge does not scan prompts for injection. The supervisor and Cursor both see the prompt you send.
+## How to report
 
-## Secrets
+Open a private advisory:
 
-Diagnostics report whether Cursor is authenticated. They do not include email, user ids, tokens, or raw `agent status` payloads.
+https://github.com/francescoveryra-dot/IAF-Agent-Bridge/security/advisories/new
 
-Logs pass through redaction for common key and bearer shapes. Do not rely on redaction as the only control. Do not commit `.env` files, tokens, or private keys. The repository ignore rules exclude them.
+Include the version or commit, the host, what you expected, and the smallest description that shows the problem. Redact secrets.
 
-Child processes inherit the environment so Cursor can use its existing login. The bridge does not add an API key and does not write one down.
+There is no public security email. Private vulnerability reporting is enabled on this repository.
 
-## Protocol limits
+## What to expect
 
-ACP frames are capped. Collected reply text is capped and the truncation is reported. Request timeouts bound handshake calls, the whole turn, and an optional idle timer. A malformed frame increments a warning and does not terminate the server.
+The maintainer will acknowledge a report when they can. There is no published response-time promise. Fixes land on `main` with a changelog note. Credit is given when you want it.
 
-## Reporting
+## Scope
 
-Report vulnerabilities through the private channel you use with the repository owner. Do not open a public issue that includes a working exploit, a token, or a customer payload.
+In scope: this repository's MCP server, ACP client, permission policy, plugin hooks, and GitHub workflows.
+
+Out of scope: Cursor's own service, the supervisor product you use (Codex, Claude, and others), and vulnerabilities that require the operator to set `IAF_PERMISSION_MODE=allow-all` or to point `IAF_CURSOR_AGENT` at a program they do not trust.
+
+Dependency advisories are handled with Dependabot. If you find a dependency issue that Dependabot has not opened, use a private advisory when it is exploitable from this bridge.
+
+## Operational boundaries
+
+`delegate` starts Cursor in a directory you choose. Treat that directory as writable. `plan` and `ask` are instructions to Cursor, not a sandbox. Logs are redacted for common token shapes and are not a guarantee. The child process inherits the environment so Cursor can use its existing login.

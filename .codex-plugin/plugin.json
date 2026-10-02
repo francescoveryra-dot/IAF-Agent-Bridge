@@ -14,7 +14,8 @@
   "mcpServers": {
     "iaf-agent-bridge": {
       "command": "node",
-      "args": ["dist/cli.js"]
+      "args": ["${PLUGIN_ROOT}/bin/iaf-agent-bridge.mjs"],
+      "cwd": "${PLUGIN_ROOT}"
     }
   },
   "interface": {

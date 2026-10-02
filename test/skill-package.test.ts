@@ -23,6 +23,21 @@ test("package metadata stays aligned and does not claim a published npm release"
   assert.equal(claimsPublishedNpmPackage(server), false);
 });
 
+test("plugin manifests start the portable checkout launcher", () => {
+  const codex = JSON.parse(read(".codex-plugin/plugin.json"));
+  const server = codex.mcpServers["iaf-agent-bridge"];
+  assert.equal(server.command, "node");
+  assert.deepEqual(server.args, ["${PLUGIN_ROOT}/bin/iaf-agent-bridge.mjs"]);
+  assert.equal(server.cwd, "${PLUGIN_ROOT}");
+  const launcher = read("bin/iaf-agent-bridge.mjs");
+  assert.match(launcher, /"dist", "cli\.js"/);
+  assert.doesNotMatch(launcher, /\/Users\//);
+  for (const path of [".claude-plugin/mcp.json", ".cursor-plugin/mcp.json", ".mcp.copilot.json"]) {
+    assert.match(read(path), /bin\/iaf-agent-bridge\.mjs/);
+    assert.doesNotMatch(read(path), /dist\/cli\.js/);
+  }
+});
+
 test("the supervisor skill encodes the natural loop and not a review bureaucracy", () => {
   const skill = read("skills/iaf-agent-bridge/SKILL.md");
   for (const word of ["CONTINUE", "COMPLETE", "BLOCKED"]) assert.match(skill, new RegExp(word));

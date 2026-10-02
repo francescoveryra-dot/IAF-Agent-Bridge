@@ -25,4 +25,4 @@ Cursor Agent
 
 Cursor can still edit anything the operating system allows inside the workspace, and a command that does not match the patterns above can still run. `plan` and `ask` do not confine the agent. A hostile repository can contain instructions Cursor will read. The child inherits the environment so the Cursor login works; do not put unrelated secrets in that environment if you can avoid it.
 
-The Claude plugin hook `.claude-plugin/ensure-deps.mjs` runs `npm install` and `npm run build` on session start when `dist/cli.js` or dependencies are missing. That executes npm in the plugin directory. It does not download a shell script. Review the clone before you enable the plugin.
+`bin/iaf-agent-bridge.mjs` runs `npm install` and `npm run build` in the plugin directory when `dist/cli.js` is missing, then starts the server. The Claude plugin hook `.claude-plugin/ensure-deps.mjs` does the same build on session start. Both execute npm in the plugin directory. Neither downloads a shell script. Review the clone before you enable the plugin.

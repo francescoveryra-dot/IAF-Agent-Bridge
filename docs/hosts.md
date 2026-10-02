@@ -4,15 +4,15 @@ One stdio server. The host configuration changes. Replace `CLONE` with the absol
 
 ## Codex
 
-`~/.codex/config.toml`:
+The Codex plugin starts `node` with `${PLUGIN_ROOT}/bin/iaf-agent-bridge.mjs`. That launcher builds `dist/cli.js` in the plugin checkout when it is missing, then runs the MCP server. A marketplace install does not contain `dist/` because the build output is not committed.
+
+A manual server entry can use the same launcher, or `dist/cli.js` after you have already built the clone:
 
 ```toml
 [mcp_servers.iaf-agent-bridge]
 command = "node"
-args = ["CLONE/dist/cli.js"]
+args = ["CLONE/bin/iaf-agent-bridge.mjs"]
 ```
-
-The Codex CLI was not available in the development environment, so this block follows Codex's config reference and was not executed there. The plugin files are `.codex-plugin/plugin.json` and `.agents/plugins/marketplace.json`.
 
 ## Claude Code
 

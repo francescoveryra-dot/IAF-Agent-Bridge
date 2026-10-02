@@ -52,7 +52,7 @@ jobs:
           git rev-parse "refs/tags/$TAG" >/dev/null
           version="${TAG#v}"
           awk -v ver="$version" '
-            $0 ~ "^## " ver "($| )" { found = 1; next }
+            $0 ~ "^## \\[?" ver "\\]?( |$)" { found = 1; next }
             found && /^## / { exit }
             found { print }
           ' CHANGELOG.md > notes.md

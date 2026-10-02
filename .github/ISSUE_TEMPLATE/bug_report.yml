@@ -1,0 +1,36 @@
+name: Bug report
+description: Something in IAF Agent Bridge does not work as documented.
+labels: [bug]
+body:
+  - type: input
+    attributes:
+      label: Version or commit
+      placeholder: 1.0.0 or a commit SHA
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Host
+      placeholder: Codex, Claude Code, VS Code, or another MCP client
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Linux
+        - Windows
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What happened
+      description: Include the tool name and the error reason. Paste `node dist/cli.js doctor --json` only after removing tokens.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What you expected
+    validations:
+      required: true

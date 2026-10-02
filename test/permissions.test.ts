@@ -48,6 +48,11 @@ test("destructive commands are rejected", () => {
   }
 });
 
+test("a path that leaves the workspace is rejected", () => {
+  const outcome = decidePermission(request("rm -rf ../outside"), workspace, "autonomous");
+  assert.equal(outcome.decision.action, "reject");
+});
+
 test("allow-all can select an allow option for a force push", () => {
   const outcome = decidePermission(request("git push --force origin main"), workspace, "allow-all");
   assert.equal(outcome.decision.action, "allow");

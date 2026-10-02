@@ -1,0 +1,27 @@
+name: Feature request
+description: A capability the bridge or its docs should gain.
+labels: [enhancement]
+body:
+  - type: textarea
+    attributes:
+      label: Use case
+      description: Who needs this, and what they are trying to finish.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Host
+      placeholder: Codex, Claude Code, VS Code, or another client
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Environment
+      placeholder: OS, Node version, Cursor CLI version if you have it
+    validations:
+      required: false

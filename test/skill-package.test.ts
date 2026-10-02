@@ -14,6 +14,10 @@ test("package metadata stays aligned and does not claim a published npm release"
   assert.equal(pkg.version, "1.0.0");
   assert.equal(server.version, pkg.version);
   assert.equal(plugin.version, pkg.version);
+  const cursorPlugin = JSON.parse(read(".cursor-plugin/plugin.json"));
+  const claudePlugin = JSON.parse(read(".claude-plugin/plugin.json"));
+  assert.equal(cursorPlugin.version, pkg.version);
+  assert.equal(claudePlugin.version, pkg.version);
   assert.equal(pkg.name, "iaf-agent-bridge");
   assert.equal(JSON.stringify(server).includes("registry.npmjs.org"), false);
 });

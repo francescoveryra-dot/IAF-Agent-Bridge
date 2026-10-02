@@ -4,9 +4,10 @@ MCP server that lets Codex, Claude Code, or another stdio host send work to Curs
 
 The bridge carries the prompt, the session, and Cursor's reply. The supervisor decides what happens next. Cursor does the implementation.
 
-**Status:** public source. Version 1.0.0 is not yet published to npm or as a GitHub Release.
+**Status:** [GitHub Release v1.0.0](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.0.0) is published. The npm package is not published yet.
 
 [![CI](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/actions/workflows/test.yml/badge.svg)](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/actions/workflows/test.yml)
+[![GitHub Release](https://img.shields.io/github/v/release/francescoveryra-dot/IAF-Agent-Bridge)](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.0.0)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](package.json)
 

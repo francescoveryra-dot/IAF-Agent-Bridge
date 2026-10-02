@@ -14,21 +14,21 @@ Evidence is from this repository on 2026-10-02. "Ready" means the artifact exist
 | CodeQL | Ready | Default setup API returned `state: configured` | none |
 | Secret scanning | Ready | API status `enabled` | none |
 | Push protection | Ready | API status `enabled` | none |
-| CI Linux, macOS, Windows | Ready on commit `1019ade` | Run `37055341407` succeeded for all three | Re-check the run for the next commit |
-| npm package | Ready, not published | `npm pack` and a temporary install | `npm publish --access public` |
-| Cursor plugin | Ready | `.cursor-plugin/plugin.json` | none for the files |
-| Cursor public marketplace | Not submitted | `agent plugin marketplace add` indexed 1 plugin | https://cursor.com/marketplace/publish |
-| Claude plugin | Ready | `claude plugin validate --strict` succeeded | none |
-| Claude marketplace | Locally added | `claude plugin marketplace add ./ --scope local` | A new user adds the git URL. No central submission |
-| Codex plugin | Manifest ready | `.codex-plugin/plugin.json` | Codex CLI was not installed here |
-| Copilot | Manifest ready | `plugin.json`, `.mcp.copilot.json` | Copilot CLI was not installed |
-| Generic MCP | Documented | `docs/hosts.md` | Those hosts were not launched here |
-| MCP registry | Descriptor only | `server.json` | Submit after npm publish |
+| CI Linux, macOS, Windows | Ready on commit `97128e7` | Release-preparation run `37063219507` succeeded for all three | none |
+| Cursor plugin | Ready | `.cursor-plugin/plugin.json` | CLI indexed the public repository |
+| Cursor public marketplace | Not submitted | Sign-in required at https://cursor.com/marketplace/publish | Not listed in a public search |
+| Claude plugin | Ready | `claude plugin validate --strict` succeeded on the release tree | none |
+| Claude marketplace | Public repository install verified | Fresh clone added with `claude plugin marketplace add` | No central directory |
+| Codex plugin | Public GitHub install verified | Codex CLI 0.160.0 installed `iaf-agent-bridge@iaf-agent-bridge` from this repository at `97128e7` | Not listed in the OpenAI plugin directory |
+| Copilot | Public GitHub install verified | Copilot CLI 1.0.91 installed `iaf-agent-bridge@iaf-agent-bridge` v1.0.0 | Repository marketplace, not the default `copilot-plugins` catalog |
+| npm package | Not published | Name is absent from the public registry | Authenticate to npm, then `npm publish --access public` from tag `v1.0.0` |
+| MCP registry | Not submitted | `server.json` | Blocked until the npm package exists |
+| Generic MCP | Documented | `docs/hosts.md` | Configuration only |
 | Fresh installation | Recorded in the final report | HTTPS clone, install, test, doctor | none |
 | Cursor ACP and resume | Ready | `scripts/acceptance.mjs` | none |
 | Natural supervisor loop | Ready | Skill plus the two-turn acceptance result | none |
 | Master Prompt | Ready | Acceptance used one session for both deliverables and did not invent `PROJECT_SPEC.md` | none |
 | Security tests | Ready | Workspace, symlink, destructive commands, malformed frames, recursion | none |
 | Secret and history scan | Ready | No credentials in history or the tree | none |
-| SBOM | Generated on demand | `npm sbom --sbom-format cyclonedx` in CI and the release workflow | none until a release is cut |
-| Branch protection | Not changed | No ruleset was applied | Optional: require the `test` check on `main` and block force-push |
+| SBOM | Published with the release | `sbom.cdx.json` on the v1.0.0 GitHub Release | none |
+| Branch protection | Active ruleset `protect-main` | Blocks force-push and deletion of `main`. Bypass is not granted. | Required status checks were not added, so a normal push to `main` still works. |

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { claimsPublishedNpmPackage } from "../dist/npm-publication.js";
 
 const root = new URL("../", import.meta.url);
 function read(path) {
@@ -19,7 +20,7 @@ test("package metadata stays aligned and does not claim a published npm release"
   assert.equal(cursorPlugin.version, pkg.version);
   assert.equal(claudePlugin.version, pkg.version);
   assert.equal(pkg.name, "iaf-agent-bridge");
-  assert.equal(JSON.stringify(server).includes("registry.npmjs.org"), false);
+  assert.equal(claimsPublishedNpmPackage(server), false);
 });
 
 test("the supervisor skill encodes the natural loop and not a review bureaucracy", () => {

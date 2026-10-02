@@ -1,9 +1,12 @@
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { AcpClient } from "./acp-client.js";
+import { buildPromptBlocks } from "./attachments.js";
 import { discoverProjectContextFiles } from "./context-files.js";
 import { loadConfig, type BridgeConfig } from "./config.js";
 import { cursorLaunchSpec } from "./discovery.js";
 import { BridgeError } from "./errors.js";
+import { resolveEffort } from "./model-config.js";
+import { ReplyCollector } from "./reply.js";
 import { assertWorkspace } from "./workspace.js";
 import type { AgentMode, DelegationResult, SpawnSpec, TodoItem, TodoProgress } from "./types.js";
 
@@ -15,6 +18,10 @@ export interface TurnInput {
   sessionId?: string;
   mode?: AgentMode;
   model?: string;
+  fast?: boolean;
+  effort?: string;
+  context?: string;
+  contextFiles?: string[];
   spawnSpec?: SpawnSpec;
   config?: BridgeConfig;
   handshakeTimeoutMs?: number;
@@ -44,8 +51,7 @@ export async function runTurn(input: TurnInput, hooks: TurnHooks = {}): Promise<
   const idleTimeoutMs = input.idleTimeoutMs ?? config.idleTimeoutMs;
   const spawnSpec = input.spawnSpec ?? cursorLaunchSpec(config);
 
-  let text = "";
-  let sawChunk = false;
+  const collector = new ReplyCollector();
   const files = new Set<string>();
   let sessionId = input.sessionId;
   let resumed = false;
@@ -55,7 +61,7 @@ export async function runTurn(input: TurnInput, hooks: TurnHooks = {}): Promise<
 
   function fail(reason: string, message: string): void {
     if (timedOut) return;
-    timedOut = new BridgeError(reason, message, { sessionId, partialResult: text || undefined });
+    timedOut = new BridgeError(reason, message, { sessionId, partialResult: collector.finish().result || undefined });
     if (sessionId) client.cancel(sessionId);
     void client.stop();
   }
@@ -71,16 +77,7 @@ export async function runTurn(input: TurnInput, hooks: TurnHooks = {}): Promise<
     permissionMode: config.permissionMode,
     mode,
     handshakeTimeoutMs,
-    onUpdate: (update) => absorbUpdate(update, {
-      append: (chunk) => {
-        sawChunk = true;
-        text = `${text}${chunk}`.slice(-RESULT_CAP);
-      },
-      appendFull: (chunk) => {
-        if (!sawChunk) text = `${text}${chunk}`.slice(-RESULT_CAP);
-      },
-      addFile: (file) => files.add(file),
-    }),
+    onUpdate: (update) => absorbUpdate(update, collector, files, client),
     onActivity: () => bumpIdle(),
   });
 
@@ -108,13 +105,24 @@ export async function runTurn(input: TurnInput, hooks: TurnHooks = {}): Promise<
     hooks.onProgress?.(`session ready: ${sessionId}`);
     await client.setMode(sessionId, mode);
     if (input.model) await client.setModel(sessionId, input.model);
-    const promptResult = await client.prompt(sessionId, input.prompt, turnTimeoutMs + 5_000);
+    await applyRequestedOptions(client, sessionId, input);
+    const attachmentWarnings: string[] = [];
+    const blocks = await buildPromptBlocks({
+      prompt: input.prompt,
+      workspace,
+      contextFiles: input.contextFiles,
+      imagesAccepted: client.imagesAccepted,
+      warnings: attachmentWarnings,
+    });
+    client.warnings.push(...attachmentWarnings);
+    const promptResult = await client.prompt(sessionId, blocks, turnTimeoutMs + 5_000);
     if (timedOut) throw timedOut;
     if (hooks.signal?.aborted) cancelRequested = true;
     return buildResult({
       sessionId,
       resumed,
-      text,
+      text: collector.finish().result.slice(-RESULT_CAP),
+      resultSource: collector.finish().resultSource,
       mode,
       workspace,
       files,
@@ -126,7 +134,7 @@ export async function runTurn(input: TurnInput, hooks: TurnHooks = {}): Promise<
   } catch (err) {
     if (timedOut) throw timedOut;
     if (err instanceof BridgeError && sessionId && !err.sessionId) {
-      throw new BridgeError(err.reason, err.message, { sessionId, partialResult: text || undefined, rpcCode: err.rpcCode });
+      throw new BridgeError(err.reason, err.message, { sessionId, partialResult: collector.finish().result || undefined, rpcCode: err.rpcCode });
     }
     throw err;
   } finally {
@@ -141,6 +149,7 @@ function buildResult(args: {
   sessionId: string;
   resumed: boolean;
   text: string;
+  resultSource?: "pre-tool-fallback";
   mode: AgentMode;
   workspace: string;
   files: Set<string>;
@@ -164,6 +173,7 @@ function buildResult(args: {
     mode: args.mode,
   };
   if (args.stopReason) result.stopReason = args.stopReason;
+  if (args.resultSource) result.resultSource = args.resultSource;
   if (contextFiles.length) result.projectContextFiles = contextFiles;
   if (reported.length) result.filesReportedByEditTools = reported;
   if (args.client.plan) result.plan = args.client.plan;
@@ -175,6 +185,7 @@ function buildResult(args: {
   if (args.client.permissionDecisions.length) result.permissionDecisions = args.client.permissionDecisions;
   if (warnings.length) result.protocolWarnings = warnings;
   if (args.cancelRequested) result.cancelRequested = true;
+  if (args.client.sessionTitle) result.sessionTitle = args.client.sessionTitle;
   if (args.client.currentModelId && args.requestedModel && args.client.currentModelId !== args.requestedModel) {
     result.effectiveModel = args.client.currentModelId;
   }
@@ -199,17 +210,66 @@ function relativize(file: string, workspace: string): string {
   return rel.split(sep).join("/");
 }
 
-function absorbUpdate(update: unknown, sink: {
-  append: (chunk: string) => void;
-  appendFull: (chunk: string) => void;
-  addFile: (file: string) => void;
-}): void {
+function absorbUpdate(update: unknown, collector: ReplyCollector, files: Set<string>, client: AcpClient): void {
   const body = update && typeof update === "object" ? (update as Record<string, unknown>) : null;
   if (!body) return;
+  const kind = body.sessionUpdate;
   const contentText = textOf(body.content);
-  if (body.sessionUpdate === "agent_message_chunk" && contentText) sink.append(contentText);
-  else if (body.sessionUpdate === "agent_message" && contentText) sink.appendFull(contentText);
-  collectPaths(body, sink.addFile);
+  if ((kind === "agent_message_chunk" || kind === "agent_message") && contentText) collector.pushMessage(contentText);
+  if (kind === "tool_call" || kind === "tool_call_update") {
+    const id = typeof body.toolCallId === "string" ? body.toolCallId : undefined;
+    const status = typeof body.status === "string" ? body.status : undefined;
+    collector.noteTool(id, status ?? (kind === "tool_call" ? "in_progress" : undefined));
+  }
+  if (kind === "plan" && Array.isArray(body.entries)) {
+    client.plan = {
+      ...client.plan,
+      entries: body.entries.flatMap((entry) => {
+        if (!entry || typeof entry !== "object") return [];
+        const item = entry as { content?: unknown; status?: unknown; priority?: unknown };
+        return typeof item.content === "string" ? [{ content: item.content, status: typeof item.status === "string" ? item.status : undefined, priority: typeof item.priority === "string" ? item.priority : undefined }] : [];
+      }),
+    };
+  }
+  if (typeof body.title === "string" && (kind === "session_info_update" || kind === "available_commands_update")) {
+    client.sessionTitle = body.title;
+  }
+  collectPaths(body, (file) => files.add(file));
+}
+
+async function applyRequestedOptions(client: AcpClient, sessionId: string, input: TurnInput): Promise<void> {
+  if (input.fast) {
+    try {
+      await client.setConfigOption(sessionId, "fast", "true");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      client.warnings.push(`fast tier was not applied: ${message}`);
+    }
+  }
+  if (input.context) {
+    try {
+      await client.setConfigOption(sessionId, "context", input.context);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new BridgeError("invalid-context", `Cursor rejected context ${JSON.stringify(input.context)}: ${message}`);
+    }
+  }
+  if (input.effort) {
+    const resolved = resolveEffort(client.configOptions, input.effort);
+    if (!resolved.ok) {
+      const accepted = resolved.accepted.length ? resolved.accepted.join(", ") : "none";
+      throw new BridgeError(
+        resolved.reason === "invalid" ? "invalid-effort" : "effort-unavailable",
+        `Cannot apply effort ${JSON.stringify(input.effort)}. Accepted: ${accepted}.`,
+      );
+    }
+    try {
+      await client.setConfigOption(sessionId, resolved.id, resolved.value);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new BridgeError("invalid-effort", `Cursor rejected effort ${JSON.stringify(input.effort)}: ${message}`);
+    }
+  }
 }
 
 function textOf(content: unknown): string {

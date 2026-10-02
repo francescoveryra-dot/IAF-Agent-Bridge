@@ -11,5 +11,6 @@
   "repository": "https://github.com/francescoveryra-dot/IAF-Agent-Bridge",
   "license": "MIT",
   "mcpServers": "./.claude-plugin/mcp.json",
+  "hooks": "./.claude-plugin/hooks.json",
   "keywords": ["mcp", "cursor", "acp", "codex"]
 }

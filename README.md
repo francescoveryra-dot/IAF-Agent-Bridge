@@ -81,9 +81,13 @@ One stdio server serves every host. Use the shape that host expects.
 }
 ```
 
-VS Code and Visual Studio use a `servers` object and `"type": "stdio"`. Zed uses `context_servers`. OpenCode and Kilo use `mcp` with `"type": "local"` and `command` as one array: `["node", "/ABSOLUTE/PATH/IAF-Agent-Bridge/dist/cli.js"]`. JetBrains AI Assistant takes the same command and arguments in its MCP settings.
+VS Code and Visual Studio use a `servers` object and `"type": "stdio"`. Zed uses `context_servers`. OpenCode and Kilo use `mcp` with `"type": "local"` and `command` as one array: `["node", "/ABSOLUTE/PATH/IAF-Agent-Bridge/dist/cli.js"]`. JetBrains AI Assistant takes the same command and arguments in its MCP settings. Windsurf uses `~/.codeium/windsurf/mcp_config.json` with the generic `mcpServers` block. Google Antigravity uses `~/.gemini/config/mcp_config.json`. Kiro uses `.kiro/settings/mcp.json`. GitHub Copilot CLI can install this repository as a plugin from `plugin.json`, or use the same stdio command.
 
-Do not install this server into the Cursor MCP configuration of a repository that Cursor will edit. That arrangement asks Cursor to delegate to itself. The server refuses those calls.
+## Cursor plugin
+
+`.cursor-plugin/plugin.json` is the Cursor plugin manifest. It includes the skill, commands, a rule that tells Cursor not to delegate to itself, and an MCP server entry. The server still refuses `delegate` when the MCP client is Cursor. Public listing is a manual submission at https://cursor.com/marketplace/publish.
+
+Do not add a project `.cursor/mcp.json` that points this bridge at the repository Cursor is editing.
 
 ## Tools
 

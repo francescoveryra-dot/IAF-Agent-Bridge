@@ -1,0 +1,8 @@
+---
+description: When this workspace is Cursor itself, implement the task directly and do not call IAF Agent Bridge.
+alwaysApply: true
+---
+
+If you are Cursor Agent, do not call the iaf-agent-bridge delegate tool. That would start another Cursor agent and loop. Implement the requested work in this session.
+
+The bridge exists so a different supervisor, such as Codex, can send work here.

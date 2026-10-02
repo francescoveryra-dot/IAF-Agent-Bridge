@@ -1,0 +1,49 @@
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to describe in a GitHub release, for example v1.0.0"
+        required: true
+        type: string
+      create_github_release:
+        description: "Create the GitHub release. Does not publish to npm."
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  verify:
+    uses: ./.github/workflows/test.yml
+
+  github-release:
+    needs: verify
+    if: inputs.create_github_release == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Create the GitHub release from the changelog
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          case "$TAG" in
+            v[0-9]*) ;;
+            *) echo "tag must look like v1.2.3" >&2; exit 1 ;;
+          esac
+          git rev-parse "$TAG" >/dev/null
+          version="${TAG#v}"
+          awk -v ver="$version" '
+            index($0, "## " ver) == 1 { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > notes.md
+          if ! grep -q '[^[:space:]]' notes.md; then
+            echo "See CHANGELOG.md." > notes.md
+          fi
+          gh release create "$TAG" --verify-tag --title "$TAG" --notes-file notes.md

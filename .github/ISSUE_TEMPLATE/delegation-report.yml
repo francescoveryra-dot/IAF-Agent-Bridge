@@ -1,0 +1,10 @@
+name: Delegation report
+description: A Cursor session behaved unexpectedly.
+labels: [delegation]
+body:
+  - type: textarea
+    attributes:
+      label: What you expected and what the tool returned
+      description: Include the session id and the error reason. Remove secrets.
+    validations:
+      required: true

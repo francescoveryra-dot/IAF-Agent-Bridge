@@ -24,6 +24,10 @@ const delegateInput = {
   sessionId: z.string().trim().min(1).optional().describe("Resume this Cursor session. Omit to start one. Use the sessionId from the previous result for follow-up work."),
   mode: z.enum(["agent", "plan", "ask"]).default("agent").describe("agent implements. plan asks Cursor to produce a plan and stop. ask is for a read-oriented question. The mode is an instruction to Cursor."),
   model: z.string().trim().min(1).max(200).optional().describe("Optional Cursor model id. Omit to keep Cursor's current default."),
+  fast: z.boolean().default(false).describe("Request Cursor's fast tier. Leave false unless the user asks. Higher cost."),
+  effort: z.string().trim().min(1).optional().describe("Exact effort value advertised by the selected model. Invalid values fail before the prompt and name the accepted set."),
+  context: z.string().trim().min(1).optional().describe("Context-window option when the model advertises one, such as 272k or 1m. Omit unless the user asks."),
+  contextFiles: z.array(z.string().trim().min(1)).max(20).optional().describe("Files to attach. Text becomes resource links. Images (png, jpg, gif, webp, under 5MB) are sent inline when Cursor accepts them. Missing files are warnings, not failures."),
 };
 
 const doctorInput = {
@@ -128,6 +132,10 @@ export function buildServer(deps: ServerDeps = {}): BridgeServer {
           sessionId: args.sessionId,
           mode: args.mode,
           model: args.model,
+          fast: args.fast,
+          effort: args.effort,
+          context: args.context,
+          contextFiles: args.contextFiles,
         }, {
           signal: extra.signal,
           onProgress,

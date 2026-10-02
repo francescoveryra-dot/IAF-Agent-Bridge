@@ -66,5 +66,7 @@ export interface DelegationResult {
   protocolWarnings?: string[];
   cancelRequested?: boolean;
   effectiveModel?: string;
+  resultSource?: "pre-tool-fallback";
+  sessionTitle?: string;
   partial?: boolean;
 }

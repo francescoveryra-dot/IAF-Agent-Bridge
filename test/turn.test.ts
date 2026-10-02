@@ -119,6 +119,31 @@ test("an agent exit and a turn timeout are structured failures", async () => {
   );
 });
 
+test("context files are attached and a bad effort fails before the prompt", async () => {
+  const dir = workspace();
+  writeFileSync(join(dir, "notes.txt"), "hello\n");
+  const attached = await runTurn({
+    prompt: "Read the note",
+    workspace: dir,
+    contextFiles: ["notes.txt", "missing.txt"],
+    spawnSpec: spec("stream"),
+    config: fast,
+  });
+  assert.match(attached.result, /attached Hello from Cursor/);
+  assert.match(attached.protocolWarnings?.join(" ") ?? "", /missing.txt/);
+
+  await assert.rejects(
+    () => runTurn({
+      prompt: "Think harder",
+      workspace: dir,
+      effort: "ultra",
+      spawnSpec: spec("stream"),
+      config: fast,
+    }),
+    (err: unknown) => err instanceof BridgeError && err.reason === "invalid-effort",
+  );
+});
+
 test("an unknown model fails before the prompt is treated as success", async () => {
   await assert.rejects(
     () => runTurn({ prompt: "Use a model", workspace: workspace(), model: "nope", spawnSpec: spec("stream"), config: fast }),

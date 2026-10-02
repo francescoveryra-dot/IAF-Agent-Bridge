@@ -4,6 +4,8 @@ import { BridgeError } from "./errors.js";
 import { log } from "./log.js";
 import { redact } from "./redact.js";
 import { JsonRpcPeer, type JsonRpcId } from "./jsonrpc.js";
+import type { PromptBlock } from "./attachments.js";
+import { asConfigOptions, type ConfigOption } from "./model-config.js";
 import { decidePermission } from "./permissions.js";
 import { forceKillProcessTree, killProcessTree, waitForExit } from "./process-tree.js";
 import { BRIDGE_NAME, readPackageVersion } from "./version.js";
@@ -46,6 +48,11 @@ export class AcpClient {
   protocolVersion: unknown;
   agentCapabilities: unknown;
   currentModelId: string | undefined;
+  configOptions: ConfigOption[] = [];
+  availableModels: string[] = [];
+  availableModes: string[] = [];
+  imagesAccepted = false;
+  sessionTitle: string | undefined;
   private child?: ChildProcess;
   private peer?: JsonRpcPeer;
   private stderr = "";
@@ -125,6 +132,8 @@ export class AcpClient {
     }));
     this.protocolVersion = result?.protocolVersion;
     this.agentCapabilities = result?.agentCapabilities;
+    const capabilities = record(result?.agentCapabilities);
+    this.imagesAccepted = record(capabilities?.promptCapabilities)?.image === true;
   }
 
   async authenticate(): Promise<void> {
@@ -147,7 +156,7 @@ export class AcpClient {
   async loadSession(sessionId: string, cwd: string): Promise<string> {
     const params = { sessionId, cwd, mcpServers: [] };
     try {
-      return this.captureSession(await this.rpc("session/load", params));
+      return this.captureSession(await this.rpc("session/load", params), sessionId);
     } catch (err) {
       if (!methodNotFound(err)) {
         const message = err instanceof Error ? err.message : String(err);
@@ -159,7 +168,7 @@ export class AcpClient {
       }
       this.warnings.push("session/load is unavailable; tried session/resume");
       try {
-        return this.captureSession(await this.rpc("session/resume", params));
+        return this.captureSession(await this.rpc("session/resume", params), sessionId);
       } catch (resumeErr) {
         const message = resumeErr instanceof Error ? resumeErr.message : String(resumeErr);
         throw new BridgeError("session-not-found", `Could not resume Cursor session ${sessionId}: ${message}.`, { sessionId });
@@ -189,10 +198,36 @@ export class AcpClient {
     }
   }
 
-  async prompt(sessionId: string, text: string, timeoutMs: number): Promise<{ stopReason?: string }> {
+  async setConfigOption(sessionId: string, configId: string, value: string): Promise<void> {
+    try {
+      const result = record(await this.rpc("session/set_config_option", { sessionId, configId, value }));
+      const options = asConfigOptions(result?.configOptions);
+      if (options.length) this.configOptions = options;
+      if (typeof result?.currentModelId === "string") this.currentModelId = result.currentModelId;
+    } catch (err) {
+      if (methodNotFound(err)) {
+        this.warnings.push(`session/set_config_option is unavailable; ${configId} was not applied`);
+        return;
+      }
+      throw err;
+    }
+  }
+
+  async closeSession(sessionId: string): Promise<void> {
+    try {
+      await this.rpc("session/close", { sessionId });
+    } catch (err) {
+      if (!methodNotFound(err)) {
+        const message = err instanceof Error ? err.message : String(err);
+        this.warnings.push(`session/close failed: ${message}`);
+      }
+    }
+  }
+
+  async prompt(sessionId: string, blocks: PromptBlock[], timeoutMs: number): Promise<{ stopReason?: string }> {
     const result = record(await this.rpc("session/prompt", {
       sessionId,
-      prompt: [{ type: "text", text }],
+      prompt: blocks,
     }, timeoutMs));
     const stopReason = result?.stopReason;
     if (typeof stopReason !== "string") {
@@ -236,14 +271,30 @@ export class AcpClient {
     return this.peer.request(method, params, timeoutMs);
   }
 
-  private captureSession(result: unknown): string {
+  private captureSession(result: unknown, fallbackId?: string): string {
     const body = record(result);
-    const sessionId = body?.sessionId;
-    if (typeof sessionId !== "string" || !sessionId) {
+    const returned = body?.sessionId;
+    const sessionId = typeof returned === "string" && returned ? returned : fallbackId;
+    if (!sessionId) {
       throw new BridgeError("protocol", "Cursor did not return a session id.");
     }
     const models = record(body?.models);
     if (typeof models?.currentModelId === "string") this.currentModelId = models.currentModelId;
+    if (Array.isArray(models?.availableModels)) {
+      this.availableModels = models.availableModels.flatMap((item) => {
+        const model = record(item);
+        return typeof model?.modelId === "string" ? [model.modelId] : [];
+      });
+    }
+    const modes = record(body?.modes);
+    if (Array.isArray(modes?.availableModes)) {
+      this.availableModes = modes.availableModes.flatMap((item) => {
+        const mode = record(item);
+        return typeof mode?.id === "string" ? [mode.id] : [];
+      });
+    }
+    const options = asConfigOptions(body?.configOptions);
+    if (options.length) this.configOptions = options;
     return sessionId;
   }
 

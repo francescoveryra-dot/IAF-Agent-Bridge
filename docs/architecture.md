@@ -20,6 +20,8 @@ Workspace directory
 | `src/permissions.ts` | Allow or reject a permission request |
 | `src/discovery.ts` | Find the Cursor executable |
 
+`delegate` accepts `prompt`. That text is sent to Cursor as written.
+
 Logs go to stderr. stdout is the MCP protocol when the process is a server.
 
 A future executor would register beside Cursor. V1 does not ship a second one.

@@ -4,7 +4,7 @@ One stdio server. The host configuration changes. Replace `CLONE` with the absol
 
 ## Codex
 
-The Codex plugin starts `node` with `./bin/iaf-agent-bridge.mjs` from the plugin directory. That launcher builds `dist/cli.js` in the plugin checkout when it is missing, then runs the MCP server. A marketplace install does not contain `dist/` because the build output is not committed. Codex 0.160 does not expand `${PLUGIN_ROOT}` as the server working directory, so the manifest does not set `cwd`.
+The Codex plugin starts `node` with `./bin/iaf-agent-bridge.mjs` and `"cwd": "."`. Codex resolves that working directory from the plugin checkout, not from the project you are editing. The launcher builds `dist/cli.js` when it is missing, then runs the MCP server. A marketplace install does not contain `dist/` because the build output is not committed.
 
 A manual server entry can use the same launcher, or `dist/cli.js` after you have already built the clone:
 

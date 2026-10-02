@@ -14,7 +14,8 @@
   "mcpServers": {
     "iaf-agent-bridge": {
       "command": "node",
-      "args": ["./bin/iaf-agent-bridge.mjs"]
+      "args": ["./bin/iaf-agent-bridge.mjs"],
+      "cwd": "."
     }
   },
   "interface": {

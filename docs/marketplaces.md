@@ -7,7 +7,7 @@ Nothing in this list is a public marketplace listing except the GitHub repositor
 | GitHub source | Published and public | `git clone https://github.com/francescoveryra-dot/IAF-Agent-Bridge.git` | Already the public repo |
 | Claude Code plugin | Locally validated | `claude plugin marketplace add ./ --scope local` from a clone, or add the GitHub URL | No separate Claude directory submission is required for a git marketplace |
 | Cursor plugin | Locally discovered | `agent plugin marketplace add https://github.com/francescoveryra-dot/IAF-Agent-Bridge.git` | Manual: https://cursor.com/marketplace/publish |
-| Codex plugin | Manifest ready. CLI not installed here | Add `.codex-plugin` via Codex's plugin marketplace command, or use [hosts.md](hosts.md) | No curated submission was made |
+| Codex plugin | Installed with Codex CLI 0.160 from the public Git repository | `codex plugin marketplace add https://github.com/francescoveryra-dot/IAF-Agent-Bridge` then `codex plugin add iaf-agent-bridge@iaf-agent-bridge` | No curated submission was made |
 | GitHub Copilot | Manifest ready. CLI not installed here | `plugin.json` and `.mcp.copilot.json` | Install from the repository when the Copilot CLI accepts a git plugin |
 | npm | Packed locally. Not published | After publish: `npx -y iaf-agent-bridge` | `npm publish --access public` from a release tag, after authorization |
 | MCP registry | `server.json` is the descriptor. Not submitted | n/a until the npm package exists | Submit through the [MCP registry](https://github.com/modelcontextprotocol/registry) after npm publication |

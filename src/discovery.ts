@@ -62,7 +62,7 @@ export interface CommandProbe {
   error?: string;
 }
 
-export function probeCommand(command: string, args: string[], timeoutMs: number): Promise<CommandProbe> {
+export function probeCommand(command: string, args: string[], timeoutMs: number, cwd = process.cwd()): Promise<CommandProbe> {
   return new Promise((resolve) => {
     let stdout = "";
     let settled = false;
@@ -72,7 +72,7 @@ export function probeCommand(command: string, args: string[], timeoutMs: number)
       clearTimeout(timer);
       resolve(result);
     };
-    const child = spawn(command, args, { stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(command, args, { cwd, stdio: ["ignore", "pipe", "pipe"] });
     child.stdout?.on("data", (chunk: Buffer) => {
       if (stdout.length < 8_000) stdout += chunk.toString("utf8");
     });

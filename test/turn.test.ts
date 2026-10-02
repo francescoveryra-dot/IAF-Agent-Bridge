@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -27,14 +27,21 @@ const fast = loadConfig({ IAF_HANDSHAKE_TIMEOUT_MS: "2000", IAF_TURN_TIMEOUT_MS:
 
 test("a prompt streams Cursor's reply and returns the session id", async () => {
   const dir = workspace();
+  const cwdOut = join(dir, "cwd.txt");
   writeFileSync(join(dir, "MASTER_PROMPT.md"), "# spec\n");
-  const result = await runTurn({ prompt: "Say hello", workspace: dir, spawnSpec: spec("stream"), config: fast });
+  const result = await runTurn({
+    prompt: "Say hello",
+    workspace: dir,
+    spawnSpec: spec("stream", { FAKE_ACP_CWD_OUT: cwdOut }),
+    config: fast,
+  });
   assert.equal(result.sessionId, "session-test");
   assert.equal(result.resumed, false);
   assert.equal(result.result, "Hello from Cursor");
   assert.equal(result.stopReason, "end_turn");
   assert.deepEqual(result.projectContextFiles, ["MASTER_PROMPT.md"]);
   assert.equal(result.executor, "cursor");
+  assert.equal(realpathSync(readFileSync(cwdOut, "utf8")), realpathSync(dir));
 });
 
 test("resume loads the same session", async () => {

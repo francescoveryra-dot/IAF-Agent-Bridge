@@ -43,13 +43,6 @@ export async function runDoctor(options: DoctorOptions = {}): Promise<Record<str
 
   const prefix = options.spawnSpec?.args ?? [];
   const timeoutMs = config?.versionProbeTimeoutMs ?? 10_000;
-  const version = command
-    ? await probeCommand(command, [...prefix, "--version"], timeoutMs)
-    : { spawned: false, exitCode: null, stdout: "", error: "Cursor CLI was not found" };
-  const auth = command
-    ? await readAuth(command, prefix, timeoutMs)
-    : { authenticated: "unknown" as const };
-
   let workspaceInfo: Record<string, unknown> | undefined;
   if (options.workspace) {
     try {
@@ -63,6 +56,13 @@ export async function runDoctor(options: DoctorOptions = {}): Promise<Record<str
       workspaceInfo = { path: options.workspace, exists: false, error: err instanceof Error ? err.message : String(err) };
     }
   }
+  const probeCwd = workspaceInfo?.exists === true ? String(workspaceInfo.path) : process.cwd();
+  const version = command
+    ? await probeCommand(command, [...prefix, "--version"], timeoutMs, probeCwd)
+    : { spawned: false, exitCode: null, stdout: "", error: "Cursor CLI was not found" };
+  const auth = command
+    ? await readAuth(command, prefix, timeoutMs, probeCwd)
+    : { authenticated: "unknown" as const };
 
   let handshake: Record<string, unknown> | undefined;
   if (options.deep && command && config) {
@@ -107,8 +107,8 @@ export async function runDoctor(options: DoctorOptions = {}): Promise<Record<str
   };
 }
 
-async function readAuth(command: string, prefix: string[], timeoutMs: number): Promise<{ authenticated: boolean | "unknown" }> {
-  const probe = await probeCommand(command, [...prefix, "status", "--format", "json"], timeoutMs);
+async function readAuth(command: string, prefix: string[], timeoutMs: number, cwd: string): Promise<{ authenticated: boolean | "unknown" }> {
+  const probe = await probeCommand(command, [...prefix, "status", "--format", "json"], timeoutMs, cwd);
   if (!probe.spawned || probe.exitCode !== 0 || !probe.stdout) return { authenticated: "unknown" };
   try {
     const parsed = JSON.parse(probe.stdout) as { isAuthenticated?: boolean; status?: string };

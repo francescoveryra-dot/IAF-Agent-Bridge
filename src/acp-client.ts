@@ -55,6 +55,7 @@ export class AcpClient {
   sessionTitle: string | undefined;
   private child?: ChildProcess;
   private peer?: JsonRpcPeer;
+  private spawnError?: BridgeError;
   private stderr = "";
   private stderrDecoder = new StringDecoder("utf8");
   private exitSeen = false;
@@ -73,12 +74,19 @@ export class AcpClient {
   async start(): Promise<void> {
     const { command, args, env } = this.options.spawnSpec;
     const child = spawn(command, args, {
+      cwd: this.options.workspace,
       env: { ...process.env, ...env, IAF_AGENT_BRIDGE_EXECUTOR: "1" },
       detached: process.platform !== "win32",
       stdio: ["pipe", "pipe", "pipe"],
       windowsHide: true,
     });
     this.child = child;
+    child.on("error", (err) => {
+      const message = err instanceof Error ? err.message : String(err);
+      const failure = new BridgeError("spawn-failed", `Cursor agent failed to start: ${message}`);
+      if (this.peer) this.peer.rejectAll(failure);
+      else this.spawnError = failure;
+    });
     child.stderr?.on("data", (chunk: Buffer) => {
       this.stderr = (this.stderr + this.stderrDecoder.write(chunk)).slice(-STDERR_CAP);
     });
@@ -113,6 +121,7 @@ export class AcpClient {
       onActivity: () => this.options.onActivity?.(),
       onMalformed: (detail) => this.warnings.push(detail),
     });
+    if (this.spawnError) throw this.spawnError;
     await new Promise<void>((resolve, reject) => {
       child.once("error", (err) => {
         reject(new BridgeError(

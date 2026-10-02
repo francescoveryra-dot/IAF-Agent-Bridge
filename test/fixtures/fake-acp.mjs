@@ -1,7 +1,10 @@
 import readline from "node:readline";
+import { writeFileSync } from "node:fs";
 
 const script = process.env.FAKE_ACP_SCRIPT || "stream";
 const command = process.env.FAKE_ACP_COMMAND || "npm test";
+
+if (process.env.FAKE_ACP_CWD_OUT) writeFileSync(process.env.FAKE_ACP_CWD_OUT, process.cwd());
 
 if (process.argv.includes("--version")) {
   process.stdout.write("9.9.9-test\n");

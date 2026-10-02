@@ -95,7 +95,7 @@ export async function runDoctor(options: DoctorOptions = {}): Promise<Record<str
       found: version.spawned,
       command: command ?? null,
       args,
-      version: version.exitCode === 0 ? version.stdout || null : null,
+      version: version.exitCode === 0 ? (version.stdout.split("\n")[0] ?? "").slice(0, 200) || null : null,
       authenticated: auth.authenticated,
       ...(version.error ? { error: version.error } : {}),
       ...(handshake ? { handshake } : {}),

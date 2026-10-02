@@ -83,7 +83,7 @@ export function probeCommand(command: string, args: string[], timeoutMs: number)
       finish({
         spawned: true,
         exitCode: code,
-        stdout: redact(stdout).trim().slice(0, 200),
+        stdout: redact(stdout).trim().slice(0, 8_000),
         ...(code === 0 ? {} : { error: `exited ${code}` }),
       });
     });

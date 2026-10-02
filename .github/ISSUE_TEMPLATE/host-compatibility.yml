@@ -1,0 +1,15 @@
+name: Host compatibility
+description: A specific MCP host cannot launch or use the bridge.
+labels: [compatibility]
+body:
+  - type: input
+    attributes:
+      label: Host
+      placeholder: Codex, Claude Code, VS Code, JetBrains
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Configuration and result
+    validations:
+      required: true

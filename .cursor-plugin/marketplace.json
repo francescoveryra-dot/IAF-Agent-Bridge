@@ -1,0 +1,15 @@
+{
+  "name": "iaf-agent-bridge",
+  "owner": { "name": "francescoveryra-dot" },
+  "metadata": {
+    "description": "IAF Agent Bridge marketplace.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "iaf-agent-bridge",
+      "source": ".",
+      "description": "Continue Cursor Agent sessions from an MCP supervisor."
+    }
+  ]
+}

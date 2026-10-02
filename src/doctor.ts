@@ -143,12 +143,16 @@ async function probeHandshake(args: {
     await client.initialize();
     await client.authenticate();
     const sessionId = await client.newSession(workspace);
+    await client.closeSession(sessionId);
     return {
       ok: true,
       protocolVersion: client.protocolVersion ?? null,
       agentCapabilities: client.agentCapabilities ?? {},
       sessionOpened: true,
-      sessionId,
+      sessionClosed: true,
+      models: client.availableModels,
+      modes: client.availableModes,
+      configOptions: client.configOptions.map((option) => option.id).filter((id): id is string => typeof id === "string"),
     };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };

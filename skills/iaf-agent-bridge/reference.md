@@ -11,6 +11,10 @@ The bridge transports a prompt to Cursor and returns Cursor's reply. You decide 
 | `sessionId` | no | Resume this Cursor session. Omit on the first turn. |
 | `mode` | no | `agent` (default), `plan`, or `ask`. An instruction to Cursor, not a sandbox. |
 | `model` | no | Cursor model id. Omit to keep Cursor's default. |
+| `fast` | no | `true` requests the fast tier. Default `false`. |
+| `effort` | no | Exact effort token the model advertises. An invalid value fails before the prompt. |
+| `context` | no | Context-window option when the model has one. |
+| `contextFiles` | no | Paths to attach. Missing paths become warnings. |
 
 `plan` captures the plan and does not ask Cursor to start implementing inside that turn. `agent` accepts an implementation plan so Cursor can keep working.
 
@@ -23,6 +27,7 @@ The tool returns one JSON object in a text block.
 | `sessionId` | Pass this back to continue the same conversation. |
 | `resumed` | True when this turn loaded an existing session. |
 | `result` | Cursor's reply. Read it as a pasted answer. |
+| `resultSource` | `pre-tool-fallback` when the only text arrived before tools and no final answer followed. |
 | `stopReason` | Cursor's ACP stop reason when it sent one. |
 | `projectContextFiles` | Authoritative project files found at the workspace root, only when they exist. |
 | `filesReportedByEditTools` | Paths Cursor's edit tools reported. The git diff remains the workspace record. |

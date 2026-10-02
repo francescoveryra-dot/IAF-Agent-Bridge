@@ -40,7 +40,9 @@ test("deep doctor completes an ACP handshake", async () => {
     spawnSpec: spec(),
     config: loadConfig({ IAF_HANDSHAKE_TIMEOUT_MS: "2000", IAF_VERSION_PROBE_TIMEOUT_MS: "2000" }),
   });
-  const cursor = report.cursor as { handshake?: { ok?: boolean; sessionOpened?: boolean } };
+  const cursor = report.cursor as { handshake?: { ok?: boolean; sessionOpened?: boolean; sessionClosed?: boolean; modes?: string[] } };
   assert.equal(cursor.handshake?.ok, true);
   assert.equal(cursor.handshake?.sessionOpened, true);
+  assert.equal(cursor.handshake?.sessionClosed, true);
+  assert.deepEqual(cursor.handshake?.modes, ["agent", "plan", "ask"]);
 });

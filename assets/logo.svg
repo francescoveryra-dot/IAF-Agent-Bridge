@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="IAF Agent Bridge">
+  <rect width="128" height="128" rx="28" fill="#0B1F33"/>
+  <path d="M24 84c16-28 28-42 40-42s24 14 40 42" fill="none" stroke="#7ED0FF" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="40" cy="86" r="7" fill="#F4C95D"/>
+  <circle cx="88" cy="86" r="7" fill="#F4C95D"/>
+</svg>

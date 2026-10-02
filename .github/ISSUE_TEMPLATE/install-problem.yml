@@ -1,0 +1,10 @@
+name: Install problem
+description: The bridge does not start, or doctor reports a setup problem.
+labels: [installation]
+body:
+  - type: textarea
+    attributes:
+      label: What happened
+      description: Include `node dist/cli.js doctor --json` with secrets removed.
+    validations:
+      required: true

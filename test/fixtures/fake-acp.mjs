@@ -40,7 +40,9 @@ function permissionParams() {
   };
 }
 
-async function finishPrompt(id) {
+async function finishPrompt(id, promptMessage) {
+  const blocks = Array.isArray(promptMessage?.params?.prompt) ? promptMessage.params.prompt : [];
+  const attached = blocks.some((block) => block?.type === "resource_link" || block?.type === "image");
   if (script === "hang") return;
   if (script === "exit") process.exit(2);
   if (script === "malformed") process.stdout.write("this is not json\n");
@@ -111,12 +113,7 @@ async function finishPrompt(id) {
     send({
       jsonrpc: "2.0",
       method: "session/update",
-      params: { update: { sessionUpdate: "agent_message_chunk", content: { type: "text", text: "Hello " } } },
-    });
-    send({
-      jsonrpc: "2.0",
-      method: "session/update",
-      params: { update: { sessionUpdate: "agent_message_chunk", content: { type: "text", text: "from Cursor" } } },
+      params: { update: { sessionUpdate: "agent_message_chunk", content: { type: "text", text: attached ? "attached Hello from Cursor" : "Hello from Cursor" } } },
     });
   }
   send({ jsonrpc: "2.0", id, result: { stopReason: "end_turn" } });
@@ -166,16 +163,36 @@ rl.on("line", (line) => {
     return;
   }
   if (message.method === "session/new") {
-    send({ jsonrpc: "2.0", id: message.id, result: { sessionId: "session-test", models: { currentModelId: "composer" } } });
+    send({
+      jsonrpc: "2.0",
+      id: message.id,
+      result: {
+        sessionId: "session-test",
+        models: {
+          currentModelId: "composer",
+          availableModels: [{ modelId: "composer" }, { modelId: "other" }],
+        },
+        modes: { availableModes: [{ id: "agent" }, { id: "plan" }, { id: "ask" }] },
+        configOptions: [
+          { id: "fast", options: [{ value: "true" }, { value: "false" }] },
+          { id: "effort", name: "Thinking", options: [{ value: "low" }, { value: "high" }] },
+          { id: "context", options: [{ value: "272k" }, { value: "1m" }] },
+        ],
+      },
+    });
     return;
   }
-  if (message.method === "session/set_mode" || message.method === "session/set_model") {
+  if (message.method === "session/set_mode" || message.method === "session/set_model" || message.method === "session/set_config_option" || message.method === "session/close") {
     if (message.method === "session/set_model" && message.params?.modelId === "nope") {
       send({ jsonrpc: "2.0", id: message.id, error: { code: -32602, message: "unknown model nope" } });
+      return;
+    }
+    if (message.method === "session/set_config_option" && message.params?.configId === "context" && message.params?.value === "bad") {
+      send({ jsonrpc: "2.0", id: message.id, error: { code: -32602, message: "unknown context bad" } });
       return;
     }
     send({ jsonrpc: "2.0", id: message.id, result: {} });
     return;
   }
-  if (message.method === "session/prompt") void finishPrompt(message.id);
+  if (message.method === "session/prompt") void finishPrompt(message.id, message);
 });

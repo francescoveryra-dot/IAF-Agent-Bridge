@@ -1,0 +1,7 @@
+interface:
+  display_name: "IAF Agent Bridge"
+  short_description: "Continue Cursor sessions from Codex until the work is done."
+  default_prompt: "Use IAF Agent Bridge to have Cursor implement this request, then continue the same Cursor session until the requested work is complete."
+
+policy:
+  allow_implicit_invocation: true

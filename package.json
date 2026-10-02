@@ -1,0 +1,61 @@
+{
+  "name": "iaf-agent-bridge",
+  "version": "1.0.0",
+  "description": "MCP bridge that lets a supervisor such as Codex send work to Cursor Agent over ACP and continue the same session until the request is complete.",
+  "type": "module",
+  "license": "MIT",
+  "author": "francescoveryra-dot",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "iaf-agent-bridge": "dist/cli.js"
+  },
+  "main": "dist/cli.js",
+  "files": [
+    "dist",
+    "skills",
+    "README.md",
+    "TECHNICAL.md",
+    "SECURITY.md",
+    "PRIVACY.md",
+    "TERMS.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "llms-install.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsc -p tsconfig.json && node --experimental-strip-types --test test/*.test.ts",
+    "test:pack": "node scripts/package-smoke.mjs",
+    "start": "node dist/cli.js",
+    "doctor": "node dist/cli.js doctor",
+    "prepack": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/francescoveryra-dot/IAF-Agent-Bridge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/francescoveryra-dot/IAF-Agent-Bridge/issues"
+  },
+  "homepage": "https://github.com/francescoveryra-dot/IAF-Agent-Bridge#readme",
+  "keywords": [
+    "mcp",
+    "acp",
+    "cursor",
+    "cursor-agent",
+    "codex",
+    "agent-client-protocol",
+    "iaf-agent-bridge"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "typescript": "^7.0.2"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "iaf-agent-bridge": {
+    "command": "node",
+    "args": ["dist/cli.js"]
+  }
+}

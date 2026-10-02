@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "iaf-agent-bridge",
+  "owner": { "name": "francescoveryra-dot" },
+  "description": "Marketplace entry for IAF Agent Bridge.",
+  "plugins": [
+    {
+      "name": "iaf-agent-bridge",
+      "source": "./",
+      "description": "MCP server bridging supervisors to Cursor Agent over ACP.",
+      "license": "MIT",
+      "keywords": ["mcp", "cursor", "acp"]
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "iaf-agent-bridge",
+  "displayName": "IAF Agent Bridge",
+  "version": "1.0.0",
+  "description": "MCP server that continues Cursor Agent sessions from a supervisor such as Claude Code or Codex.",
+  "author": {
+    "name": "francescoveryra-dot"
+  },
+  "homepage": "https://github.com/francescoveryra-dot/IAF-Agent-Bridge",
+  "repository": "https://github.com/francescoveryra-dot/IAF-Agent-Bridge",
+  "license": "MIT",
+  "mcpServers": "./.claude-plugin/mcp.json",
+  "keywords": ["mcp", "cursor", "acp", "codex"]
+}

@@ -27,8 +27,8 @@ test("plugin manifests start the portable checkout launcher", () => {
   const codex = JSON.parse(read(".codex-plugin/plugin.json"));
   const server = codex.mcpServers["iaf-agent-bridge"];
   assert.equal(server.command, "node");
-  assert.deepEqual(server.args, ["${PLUGIN_ROOT}/bin/iaf-agent-bridge.mjs"]);
-  assert.equal(server.cwd, "${PLUGIN_ROOT}");
+  assert.deepEqual(server.args, ["./bin/iaf-agent-bridge.mjs"]);
+  assert.equal(server.cwd, undefined);
   const launcher = read("bin/iaf-agent-bridge.mjs");
   assert.match(launcher, /"dist", "cli\.js"/);
   assert.doesNotMatch(launcher, /\/Users\//);

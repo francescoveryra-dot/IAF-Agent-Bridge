@@ -1,0 +1,15 @@
+{
+  "name": "iaf-agent-bridge",
+  "version": "1.0.0",
+  "description": "Continue Cursor Agent sessions from an MCP supervisor until the requested work is done.",
+  "author": {
+    "name": "francescoveryra-dot",
+    "url": "https://github.com/francescoveryra-dot"
+  },
+  "homepage": "https://github.com/francescoveryra-dot/IAF-Agent-Bridge",
+  "repository": "https://github.com/francescoveryra-dot/IAF-Agent-Bridge",
+  "license": "MIT",
+  "keywords": ["mcp", "cursor", "acp"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.copilot.json"
+}

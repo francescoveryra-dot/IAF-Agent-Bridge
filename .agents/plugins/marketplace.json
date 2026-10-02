@@ -1,0 +1,12 @@
+{
+  "name": "iaf-agent-bridge",
+  "interface": { "displayName": "IAF Agent Bridge" },
+  "plugins": [
+    {
+      "name": "iaf-agent-bridge",
+      "source": { "source": "url", "url": "https://github.com/francescoveryra-dot/IAF-Agent-Bridge.git" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+      "category": "Developer Tools"
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, unwatchFile, watchFile, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -22,15 +22,17 @@ function gateDir(): string {
 
 function until(file: string): Promise<void> {
   if (existsSync(file)) return Promise.resolve();
-  return new Promise((resolve) => {
-    const done = () => {
-      unwatchFile(file);
+  return new Promise((resolve, reject) => {
+    const timer = setInterval(() => {
+      if (!existsSync(file)) return;
+      clearInterval(timer);
+      clearTimeout(giveUp);
       resolve();
-    };
-    watchFile(file, { interval: 15 }, () => {
-      if (existsSync(file)) done();
-    });
-    if (existsSync(file)) done();
+    }, 10);
+    const giveUp = setTimeout(() => {
+      clearInterval(timer);
+      reject(new Error(`timed out waiting for ${file}`));
+    }, 5_000);
   });
 }
 

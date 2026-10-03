@@ -35,7 +35,21 @@ Or add this repository as a local marketplace. See [marketplaces.md](marketplace
 }
 ```
 
-VS Code and Visual Studio use a top-level `servers` object and `"type": "stdio"`. Zed uses `context_servers`. OpenCode and Kilo use `mcp` with `"type": "local"` and `command` as one array. Windsurf uses `~/.codeium/windsurf/mcp_config.json`. Antigravity uses `~/.gemini/config/mcp_config.json`. Kiro uses `.kiro/settings/mcp.json`. JetBrains AI Assistant takes the same command and arguments in its MCP settings.
+VS Code browses the GitHub MCP registry (`api.mcp.github.com`), not the Official MCP Registry directly. This server is published in the Official MCP Registry and is not listed in the GitHub gallery. Install the published package instead:
+
+```json
+{
+  "servers": {
+    "iaf-agent-bridge": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "iaf-agent-bridge@1.0.1"]
+    }
+  }
+}
+```
+
+That is `.vscode/mcp.json` for a workspace, or the user MCP configuration. No VS Code extension is required. Visual Studio uses the same `servers` shape. Zed uses `context_servers`. OpenCode and Kilo use `mcp` with `"type": "local"` and `command` as one array. Windsurf uses `~/.codeium/windsurf/mcp_config.json`. Antigravity uses `~/.gemini/config/mcp_config.json`. Kiro uses `.kiro/settings/mcp.json`. JetBrains AI Assistant takes the same command and arguments in its MCP settings.
 
 Those shapes match each product's documented configuration. They were not launched in this repository's test environment.
 

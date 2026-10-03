@@ -9,7 +9,7 @@
     {
       "name": "iaf-agent-bridge",
       "source": ".",
-      "description": "Continue Cursor Agent sessions from an MCP supervisor."
+      "description": "ChatGPT and Codex supervise. IAF Agent Bridge transports. Cursor implements."
     }
   ]
 }

@@ -16,7 +16,7 @@ Evidence is from this repository on 2026-10-02. "Ready" means the artifact exist
 | Push protection | Ready | API status `enabled` | none |
 | CI Linux, macOS, Windows | Ready on commit `97128e7` | Release-preparation run `37063219507` succeeded for all three | none |
 | Cursor plugin | Ready | `.cursor-plugin/plugin.json` | CLI indexed the public repository |
-| Cursor public marketplace | Not submitted | Sign-in required at https://cursor.com/marketplace/publish | Not listed in a public search |
+| Cursor public marketplace | SUBMITTED — PENDING REVIEW | Publisher application received by Cursor | Not publicly listed. Direct CLI install remains available |
 | Claude plugin | Ready | `claude plugin validate --strict` succeeded on the release tree | none |
 | Claude marketplace | Public repository install verified | Fresh clone added with `claude plugin marketplace add` | No central directory |
 | Codex plugin | Public GitHub install verified | Codex CLI 0.160.0 installed `iaf-agent-bridge@iaf-agent-bridge` from this repository at `97128e7` | Not listed in the OpenAI plugin directory |

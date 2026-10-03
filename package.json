@@ -1,6 +1,7 @@
 {
   "name": "iaf-agent-bridge",
-  "version": "1.0.0",
+  "version": "1.0.1",
+  "mcpName": "io.github.francescoveryra-dot/iaf-agent-bridge",
   "description": "MCP bridge that lets a supervisor such as Codex send work to Cursor Agent over ACP and continue the same session until the request is complete.",
   "type": "module",
   "license": "MIT",

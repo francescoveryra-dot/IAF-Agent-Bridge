@@ -8,11 +8,13 @@ function read(path) {
   return readFileSync(new URL(path, root), "utf8");
 }
 
-test("package metadata stays aligned and does not claim a published npm release", () => {
+test("package metadata stays aligned and records the published npm package", () => {
   const pkg = JSON.parse(read("package.json"));
   const server = JSON.parse(read("server.json"));
   const plugin = JSON.parse(read("plugin.json"));
-  assert.equal(pkg.version, "1.0.0");
+  assert.equal(pkg.version, "1.0.1");
+  assert.equal(pkg.mcpName, "io.github.francescoveryra-dot/iaf-agent-bridge");
+  assert.equal(server.name, pkg.mcpName);
   assert.equal(server.version, pkg.version);
   assert.equal(plugin.version, pkg.version);
   const cursorPlugin = JSON.parse(read(".cursor-plugin/plugin.json"));
@@ -20,7 +22,7 @@ test("package metadata stays aligned and does not claim a published npm release"
   assert.equal(cursorPlugin.version, pkg.version);
   assert.equal(claudePlugin.version, pkg.version);
   assert.equal(pkg.name, "iaf-agent-bridge");
-  assert.equal(claimsPublishedNpmPackage(server), false);
+  assert.equal(claimsPublishedNpmPackage(server), true);
 });
 
 test("plugin manifests start the portable checkout launcher", () => {

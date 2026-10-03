@@ -1,6 +1,6 @@
 {
   "name": "iaf-agent-bridge",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Continue Cursor Agent sessions from an MCP supervisor until the requested work is done.",
   "author": {
     "name": "francescoveryra-dot",

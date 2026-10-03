@@ -1,6 +1,6 @@
 {
   "name": "iaf-agent-bridge",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Send work from Codex or another MCP host to Cursor Agent and continue the same session.",
   "author": {
     "name": "francescoveryra-dot",

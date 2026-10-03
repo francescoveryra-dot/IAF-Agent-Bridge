@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, writeFileSync, watch } from "node:fs";
+import { existsSync, mkdtempSync, unwatchFile, watchFile, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { loadConfig } from "../dist/config.js";
@@ -23,16 +23,14 @@ function gateDir(): string {
 function until(file: string): Promise<void> {
   if (existsSync(file)) return Promise.resolve();
   return new Promise((resolve) => {
-    const watcher = watch(dirname(file), () => {
-      if (existsSync(file)) {
-        watcher.close();
-        resolve();
-      }
-    });
-    if (existsSync(file)) {
-      watcher.close();
+    const done = () => {
+      unwatchFile(file);
       resolve();
-    }
+    };
+    watchFile(file, { interval: 15 }, () => {
+      if (existsSync(file)) done();
+    });
+    if (existsSync(file)) done();
   });
 }
 

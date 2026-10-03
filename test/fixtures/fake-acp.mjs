@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, watch, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, unwatchFile, watchFile, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import readline from "node:readline";
 
@@ -74,11 +74,12 @@ function hold(name) {
   const go = join(dir, `${name}.go`);
   if (existsSync(go)) return Promise.resolve();
   return new Promise((resolve) => {
-    const watcher = watch(dir, () => {
-      if (existsSync(go)) {
-        watcher.close();
-        resolve();
-      }
+    const done = () => {
+      unwatchFile(go);
+      resolve();
+    };
+    watchFile(go, { interval: 15 }, () => {
+      if (existsSync(go)) done();
     });
   });
 }

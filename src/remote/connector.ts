@@ -1,4 +1,5 @@
 import { runDoctor } from "../doctor.js";
+import { log } from "../log.js";
 import { runTurn } from "../turn.js";
 import type { AgentMode } from "../types.js";
 import type { ProjectAllowlist } from "./allowlist.js";
@@ -75,6 +76,8 @@ export async function startConnector(options: ConnectorOptions): Promise<Connect
 
   async function execute(job: RemoteJob): Promise<void> {
     const controller = new AbortController();
+    const startedAt = Date.now();
+    log("info", `remote.cursor.start job=${job.id} kind=${job.kind}`);
     try {
       if (job.kind === "delegate") {
         if (!job.projectId || !job.prompt) throw new Error("Delegate job is missing a project or a prompt.");
@@ -122,6 +125,7 @@ export async function startConnector(options: ConnectorOptions): Promise<Connect
       if (stop.signal.aborted) return;
       await post(job, false, undefined, failure(err));
     } finally {
+      log("info", `remote.cursor.done job=${job.id} kind=${job.kind} durationMs=${Date.now() - startedAt}`);
       for (const [key, active] of controllers) {
         if (active === controller) controllers.delete(key);
       }

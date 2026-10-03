@@ -67,6 +67,14 @@ async function main(): Promise<void> {
     await doctorCommand(argv.slice(1));
     return;
   }
+  if (argv[0] === "gateway" || argv[0] === "connector") {
+    try {
+      setLogLevel(loadConfig().logLevel);
+    } catch (err) {
+      process.stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);
+      process.exit(1);
+    }
+  }
   if (argv[0] === "gateway") {
     const chatToken = process.env.IAF_GATEWAY_CHAT_TOKEN ?? "";
     const connectorToken = process.env.IAF_GATEWAY_CONNECTOR_TOKEN ?? "";

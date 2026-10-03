@@ -120,6 +120,13 @@ test("three supervisor cycles send prompts created only after the previous Curso
   try {
     const tools = await client.listTools();
     assert.deepEqual(tools.tools.map((tool) => tool.name).sort(), ["cancel", "delegate", "doctor"]);
+    const annotations = Object.fromEntries(tools.tools.map((tool) => [tool.name, tool.annotations]));
+    assert.equal(annotations.doctor?.readOnlyHint, true);
+    assert.equal(annotations.delegate?.readOnlyHint, false);
+    assert.equal(annotations.delegate?.destructiveHint, false);
+    assert.equal(annotations.delegate?.idempotentHint, false);
+    assert.equal(annotations.cancel?.readOnlyHint, false);
+    assert.equal(annotations.cancel?.destructiveHint, false);
     const doctor = await client.callTool({ name: "doctor", arguments: {} });
     assert.equal(doctor.isError, undefined);
     assert.equal(textOf(doctor).includes("/secret/path"), false);

@@ -73,3 +73,17 @@ The gateway listens on `127.0.0.1` only. ChatGPT cannot reach that address. Reac
 | Secret leakage | Logs record job and project ids, not prompts or tokens. Tool results omit the local workspace path. | Doctor output can still include the local Cursor executable path, as the local doctor does. |
 
 No OpenAI inference API is called. `OPENAI_API_KEY` is not read.
+
+## Development tunnel
+
+`npm run remote:chat-poc` builds nothing by itself. Run `npm run build` first. The helper creates a temporary workspace outside this repository, writes two gateway credentials to a mode `600` file under that state directory, and does not print them. The allowlist contains only `demo` for that workspace. It then calls `doctor` through the gateway MCP endpoint.
+
+Secure MCP Tunnel starts only when both `CONTROL_PLANE_API_KEY` and `CONTROL_PLANE_TUNNEL_ID` are already in the environment and `tunnel-client` is installed. The helper does not create a Platform key, a tunnel, or a public listener.
+
+Official pages do not say that creating the control-plane key, leaving the tunnel connected, or the tunnel poll itself has a price. [MCP servers](https://developers.openai.com/api/docs/guides/tools-connectors-mcp) says the Responses API MCP tool bills tokens used to import tools or make tool calls, with no extra per-call fee. That sentence is about the Responses API. This proof does not call that API. [Pricing](https://developers.openai.com/api/docs/pricing) does not list Secure MCP Tunnel.
+
+The runtime key should be a Restricted Platform Runtime API key with Tunnels Read and Use only. Tunnel creation in the dashboard needs Tunnels Read and Manage. Do not use an All key or an admin key for `tunnel-client`. Source: [tunnel-client permissions](https://github.com/openai/tunnel-client/blob/master/docs/permissions.md) and [Secure MCP Tunnel](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels).
+
+`tunnel-client` forwards the inbound `Authorization` header to the private MCP server. ChatGPT's developer-mode app has to send the gateway chat token. The tunnel control-plane key is not that token and must not be pasted into ChatGPT.
+
+In ChatGPT on the web, turn on Developer mode under Settings, Security and login. Create an app from Plugins with the plus button, choose Tunnel, and select the tunnel. Open a new normal Chat, choose Developer mode from the plus menu, and select the app. Do not use Work or Codex for this proof. Write tools ask for confirmation unless you remember the approval for that conversation. [ChatGPT Developer mode](https://developers.openai.com/api/docs/guides/developer-mode).

@@ -45,6 +45,7 @@ export interface GatewayServer {
 interface StoredJob {
   job: RemoteJob;
   state: "queued" | "leased" | "done" | "failed";
+  startedAt: number;
   result?: unknown;
   error?: RemoteError;
   sessionId?: string;
@@ -123,6 +124,7 @@ export async function startGateway(options: GatewayOptions): Promise<GatewayServ
     for (const stored of jobs.values()) {
       if (stored.state !== "queued") continue;
       stored.state = "leased";
+      log("info", `remote.job.leased job=${stored.job.id} kind=${stored.job.kind} queuedMs=${Date.now() - stored.startedAt}`);
       return stored.job;
     }
     return null;
@@ -153,7 +155,7 @@ export async function startGateway(options: GatewayOptions): Promise<GatewayServ
         resolve();
       };
     });
-    const stored: StoredJob = { job, state: "queued", sessionId, promise, finish };
+    const stored: StoredJob = { job, state: "queued", startedAt: Date.now(), sessionId, promise, finish };
     jobs.set(job.id, stored);
     byRequest.set(job.requestId, stored);
     if (sessionId) activeSessions.set(sessionId, job.id);
@@ -198,7 +200,7 @@ export async function startGateway(options: GatewayOptions): Promise<GatewayServ
       kind,
       ...fields,
     };
-    log("info", `remote.${kind} job=${job.id} project=${fields.projectId ?? "-"}`);
+    log("info", `remote.${kind}.start job=${job.id} project=${fields.projectId ?? "-"}`);
     return settle(createJob(job, kind === "delegate" ? request.sessionId : undefined));
   }
 
@@ -220,7 +222,7 @@ export async function startGateway(options: GatewayOptions): Promise<GatewayServ
         fast: delegateRequestSchema.shape.fast,
         clientRequestId: delegateRequestSchema.shape.clientRequestId,
       },
-      annotations: { title: "Send work to Cursor", readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+      annotations: { title: "Send work to Cursor", readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     },
     async (args) => {
       const parsed = delegateRequestSchema.safeParse(args);
@@ -357,7 +359,7 @@ export async function startGateway(options: GatewayOptions): Promise<GatewayServ
         }
         if (result.data.ok) stored.finish(undefined, result.data.result);
         else stored.finish(result.data.error ?? { reason: "connector-error", message: "The connector failed without a reason." });
-        log("info", `remote.result job=${stored.job.id} ok=${String(result.data.ok)}`);
+        log("info", `remote.result job=${stored.job.id} ok=${String(result.data.ok)} totalMs=${Date.now() - stored.startedAt}`);
         sendJson(res, 200, { ok: true });
         return;
       }

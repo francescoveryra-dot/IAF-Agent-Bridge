@@ -6,6 +6,9 @@ import { loadConfig } from "./config.js";
 import { runDoctor } from "./doctor.js";
 import { setLogLevel } from "./log.js";
 import { buildServer, installSignalCleanup } from "./mcp-server.js";
+import { createAllowlist, parseProjectList } from "./remote/allowlist.js";
+import { startConnector } from "./remote/connector.js";
+import { startGateway } from "./remote/gateway.js";
 import { readPackageVersion } from "./version.js";
 
 function isMain(): boolean {
@@ -53,7 +56,7 @@ async function main(): Promise<void> {
   }
   const argv = process.argv.slice(2);
   if (argv.includes("--help") || argv.includes("-h")) {
-    process.stdout.write("Usage: iaf-agent-bridge [--version] [mcp] | doctor [--deep] [--json] [--workspace path]\n");
+    process.stdout.write("Usage: iaf-agent-bridge [--version] [mcp] | doctor [--deep] [--json] [--workspace path] | gateway | connector\n");
     return;
   }
   if (argv.includes("--version") || argv.includes("-v")) {
@@ -62,6 +65,43 @@ async function main(): Promise<void> {
   }
   if (argv[0] === "doctor") {
     await doctorCommand(argv.slice(1));
+    return;
+  }
+  if (argv[0] === "gateway") {
+    const chatToken = process.env.IAF_GATEWAY_CHAT_TOKEN ?? "";
+    const connectorToken = process.env.IAF_GATEWAY_CONNECTOR_TOKEN ?? "";
+    const gateway = await startGateway({
+      chatToken,
+      connectorToken,
+      port: Number(process.env.IAF_GATEWAY_PORT ?? 8787),
+    });
+    process.stdout.write(`IAF remote gateway listening at ${gateway.mcpUrl}\n`);
+    const stop = () => {
+      void gateway.close().finally(() => process.exit(0));
+    };
+    process.once("SIGINT", stop);
+    process.once("SIGTERM", stop);
+    return;
+  }
+  if (argv[0] === "connector") {
+    const gatewayUrl = process.env.IAF_GATEWAY_URL ?? "";
+    const connectorToken = process.env.IAF_GATEWAY_CONNECTOR_TOKEN ?? "";
+    const projects = process.env.IAF_REMOTE_PROJECTS ?? "";
+    if (!gatewayUrl) {
+      process.stderr.write("IAF_GATEWAY_URL is required.\n");
+      process.exit(1);
+    }
+    const connector = await startConnector({
+      gatewayUrl,
+      connectorToken,
+      allowlist: createAllowlist(parseProjectList(projects)),
+    });
+    process.stdout.write("IAF remote connector is polling the gateway.\n");
+    const stop = () => {
+      void connector.close().finally(() => process.exit(0));
+    };
+    process.once("SIGINT", stop);
+    process.once("SIGTERM", stop);
     return;
   }
   if (argv.length === 0 || argv[0] === "mcp") {
@@ -76,7 +116,7 @@ async function main(): Promise<void> {
     await bridge.server.connect(new StdioServerTransport());
     return;
   }
-  process.stderr.write("Usage: iaf-agent-bridge [--version] [mcp] | doctor [--deep] [--json] [--workspace path]\n");
+  process.stderr.write("Usage: iaf-agent-bridge [--version] [mcp] | doctor [--deep] [--json] [--workspace path] | gateway | connector\n");
   process.exit(1);
 }
 

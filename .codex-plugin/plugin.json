@@ -1,6 +1,6 @@
 {
   "name": "iaf-agent-bridge",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Send work from Codex or another MCP host to Cursor Agent and continue the same session.",
   "author": {
     "name": "francescoveryra-dot",
@@ -9,12 +9,19 @@
   "homepage": "https://github.com/francescoveryra-dot/IAF-Agent-Bridge",
   "repository": "https://github.com/francescoveryra-dot/IAF-Agent-Bridge",
   "license": "MIT",
-  "keywords": ["mcp", "cursor", "codex", "acp"],
+  "keywords": [
+    "mcp",
+    "cursor",
+    "codex",
+    "acp"
+  ],
   "skills": "./skills/",
   "mcpServers": {
     "iaf-agent-bridge": {
       "command": "node",
-      "args": ["./bin/iaf-agent-bridge.mjs"],
+      "args": [
+        "./bin/iaf-agent-bridge.mjs"
+      ],
       "cwd": "."
     }
   },
@@ -23,7 +30,10 @@
     "shortDescription": "Continue Cursor sessions until the work is done",
     "developerName": "francescoveryra-dot",
     "category": "Developer Tools",
-    "capabilities": ["Read", "Write"],
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
     "websiteURL": "https://github.com/francescoveryra-dot/IAF-Agent-Bridge",
     "privacyPolicyURL": "https://github.com/francescoveryra-dot/IAF-Agent-Bridge/blob/main/PRIVACY.md",
     "termsOfServiceURL": "https://github.com/francescoveryra-dot/IAF-Agent-Bridge/blob/main/TERMS.md",

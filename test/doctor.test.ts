@@ -29,7 +29,7 @@ test("doctor reports the bridge, runtime, and cursor probe without account detai
   assert.equal(JSON.stringify(report).includes("@"), false);
   const bridge = report.bridge as { name: string; version: string };
   assert.equal(bridge.name, "iaf-agent-bridge");
-  assert.equal(bridge.version, "1.0.1");
+  assert.equal(bridge.version, "1.0.2");
 });
 
 test("deep doctor completes an ACP handshake", async () => {

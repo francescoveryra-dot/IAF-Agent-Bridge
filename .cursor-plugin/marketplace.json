@@ -1,9 +1,11 @@
 {
   "name": "iaf-agent-bridge",
-  "owner": { "name": "francescoveryra-dot" },
+  "owner": {
+    "name": "francescoveryra-dot"
+  },
   "metadata": {
     "description": "IAF Agent Bridge marketplace.",
-    "version": "1.0.1"
+    "version": "1.0.2"
   },
   "plugins": [
     {

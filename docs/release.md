@@ -1,10 +1,10 @@
 # Release
 
-[npm `iaf-agent-bridge@1.0.2`](https://www.npmjs.com/package/iaf-agent-bridge) is the current public package. GitHub Release [v1.0.2](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.0.2) is the matching release.
+[npm `iaf-agent-bridge@1.1.0`](https://www.npmjs.com/package/iaf-agent-bridge) is the current public package. GitHub Release [v1.1.0](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.1.0) is the matching release.
 
 [v1.0.1](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.0.1) and [v1.0.0](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.0.0) remain public. The `1.0.0` npm tarball does not contain `mcpName`.
 
-The Official MCP Registry entry [`io.github.francescoveryra-dot/iaf-agent-bridge`](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.francescoveryra-dot%2Fiaf-agent-bridge/versions/latest) version `1.0.2` is public and `active`. It points at npm package `iaf-agent-bridge` version `1.0.2` with stdio transport.
+The Official MCP Registry entry [`io.github.francescoveryra-dot/iaf-agent-bridge`](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.francescoveryra-dot%2Fiaf-agent-bridge/versions/latest) version `1.1.0` is public and `active`. It points at npm package `iaf-agent-bridge` version `1.1.0` with stdio transport.
 
 ## Cut a later release
 

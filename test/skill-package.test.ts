@@ -12,7 +12,7 @@ test("package metadata stays aligned and records the published npm package", () 
   const pkg = JSON.parse(read("package.json"));
   const server = JSON.parse(read("server.json"));
   const plugin = JSON.parse(read("plugin.json"));
-  assert.equal(pkg.version, "1.0.2");
+  assert.equal(pkg.version, "1.1.0");
   assert.equal(pkg.mcpName, "io.github.francescoveryra-dot/iaf-agent-bridge");
   assert.equal(server.name, pkg.mcpName);
   assert.equal(server.version, pkg.version);

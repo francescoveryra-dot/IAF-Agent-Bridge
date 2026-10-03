@@ -35,7 +35,7 @@ claude plugin install iaf-agent-bridge@iaf-agent-bridge
 
 Inside a session the same steps are `/plugin marketplace add francescoveryra-dot/IAF-Agent-Bridge` and `/plugin install iaf-agent-bridge@iaf-agent-bridge`.
 
-A source checkout can also be added with `claude mcp add iaf-agent-bridge -- node CLONE/dist/cli.js`. The published package is `npx -y iaf-agent-bridge@1.0.2`. See [marketplaces.md](marketplaces.md).
+A source checkout can also be added with `claude mcp add iaf-agent-bridge -- node CLONE/dist/cli.js`. The published package is `npx -y iaf-agent-bridge@1.1.0`. See [marketplaces.md](marketplaces.md).
 
 ## Generic MCP
 
@@ -58,7 +58,7 @@ VS Code browses the GitHub MCP registry (`api.mcp.github.com`), not the Official
     "iaf-agent-bridge": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "iaf-agent-bridge@1.0.2"]
+      "args": ["-y", "iaf-agent-bridge@1.1.0"]
     }
   }
 }

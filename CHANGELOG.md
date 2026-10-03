@@ -3,11 +3,12 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] - 2026-10-03
 
 ### Added
 
-- Personal Private mode for normal ChatGPT Chat. `setup chatgpt` stores project aliases locally. `chatgpt` listens on a user-owned socket for the user's own Secure MCP Tunnel. IAF does not run a relay. This is in source and is not the published npm package yet.
+- Personal Private transport for ChatGPT workspaces that expose Full MCP write tools. Each user creates their own Secure MCP Tunnel and restricted runtime key. `setup chatgpt` stores project aliases on their machine. `chatgpt` listens on a user-owned socket, mode 600. IAF does not run a content relay.
+- Availability of those write tools is an OpenAI plan and workspace entitlement. A tested ChatGPT Plus account did not expose the Full MCP write setup. The bridge does not detect the plan and does not mark `delegate` as read-only.
 
 ## [1.0.2] - 2026-10-03
 

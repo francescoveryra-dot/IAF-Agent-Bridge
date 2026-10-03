@@ -3,7 +3,7 @@
   "name": "io.github.francescoveryra-dot/iaf-agent-bridge",
   "title": "IAF Agent Bridge",
   "description": "MCP server that sends work to Cursor Agent over ACP and returns the session id needed to continue.",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "websiteUrl": "https://github.com/francescoveryra-dot/IAF-Agent-Bridge",
   "repository": {
     "url": "https://github.com/francescoveryra-dot/IAF-Agent-Bridge",
@@ -13,7 +13,7 @@
     {
       "registryType": "npm",
       "identifier": "iaf-agent-bridge",
-      "version": "1.0.2",
+      "version": "1.1.0",
       "transport": {
         "type": "stdio"
       }

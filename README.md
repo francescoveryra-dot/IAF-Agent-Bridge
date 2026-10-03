@@ -6,11 +6,11 @@ The bridge carries the prompt, the session, and Cursor's reply. The supervisor d
 
 `delegate` returns only after that Cursor turn is finished. A message that says the work is complete does not end the call while Cursor is still running tools, sub-agents, or a follow-up. Cursor keeps control of that internal work. The supervisor sees one result, then chooses CONTINUE, COMPLETE, or BLOCKED.
 
-**Status:** [npm `iaf-agent-bridge@1.0.2`](https://www.npmjs.com/package/iaf-agent-bridge) is the current public package. [GitHub Release v1.0.2](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.0.2) matches it. [v1.0.1](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.0.1) and [v1.0.0](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.0.0) remain published. The Official MCP Registry entry is [`io.github.francescoveryra-dot/iaf-agent-bridge`](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.francescoveryra-dot%2Fiaf-agent-bridge/versions/latest) version `1.0.2`.
+**Status:** [npm `iaf-agent-bridge@1.1.0`](https://www.npmjs.com/package/iaf-agent-bridge) is the current public package. [GitHub Release v1.1.0](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.1.0) matches it. [v1.0.2](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.0.2), [v1.0.1](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.0.1), and [v1.0.0](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.0.0) remain published. The Official MCP Registry entry is [`io.github.francescoveryra-dot/iaf-agent-bridge`](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.francescoveryra-dot%2Fiaf-agent-bridge/versions/latest) version `1.1.0`.
 
 [![CI](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/actions/workflows/test.yml/badge.svg)](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/actions/workflows/test.yml)
 [![npm](https://img.shields.io/npm/v/iaf-agent-bridge)](https://www.npmjs.com/package/iaf-agent-bridge)
-[![GitHub Release](https://img.shields.io/github/v/release/francescoveryra-dot/IAF-Agent-Bridge)](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.0.2)
+[![GitHub Release](https://img.shields.io/github/v/release/francescoveryra-dot/IAF-Agent-Bridge)](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.1.0)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](package.json)
 
@@ -46,14 +46,14 @@ Cursor Agent is the only production executor. Codex and Claude Code are supervis
 
 No OpenAI API key is required for the local stdio server.
 
-Normal ChatGPT Chat is a separate mode. It uses your own Secure MCP Tunnel and a local socket. The commands `setup chatgpt` and `chatgpt` are in this source tree. They are not in the published npm package `1.0.2`. IAF does not host a relay for that mode. Details: [docs/remote-chat.md](docs/remote-chat.md).
+Personal Private mode is separate from the local stdio server. You create your own Secure MCP Tunnel and restricted runtime key. `npx iaf-agent-bridge setup chatgpt --project my-project=/absolute/path` stores that alias locally, and `npx iaf-agent-bridge chatgpt` listens on a socket that only your user can open. IAF does not host a relay. Calling `delegate` from normal ChatGPT requires that workspace to expose Full MCP write tools. A tested ChatGPT Plus account did not. The bridge does not detect the plan. Details: [docs/remote-chat.md](docs/remote-chat.md).
 
 ## Install
 
 | Channel | Status | How |
 | --- | --- | --- |
-| npm | AVAILABLE | `npx -y iaf-agent-bridge@1.0.2` |
-| Official MCP Registry | AVAILABLE | [`io.github.francescoveryra-dot/iaf-agent-bridge` 1.0.2](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.francescoveryra-dot%2Fiaf-agent-bridge/versions/1.0.2) |
+| npm | AVAILABLE | `npx -y iaf-agent-bridge@1.1.0` |
+| Official MCP Registry | AVAILABLE | [`io.github.francescoveryra-dot/iaf-agent-bridge` 1.1.0](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.francescoveryra-dot%2Fiaf-agent-bridge/versions/1.1.0) |
 | Cursor plugin | DIRECT INSTALL AVAILABLE | `agent plugin marketplace add https://github.com/francescoveryra-dot/IAF-Agent-Bridge.git` |
 | Cursor Marketplace | SUBMITTED — PENDING REVIEW | Not a public install yet. Direct install remains `agent plugin marketplace add https://github.com/francescoveryra-dot/IAF-Agent-Bridge.git`. |
 | Claude Code | DIRECT INSTALL AVAILABLE | `claude plugin marketplace add francescoveryra-dot/IAF-Agent-Bridge` then `claude plugin install iaf-agent-bridge@iaf-agent-bridge` |
@@ -80,7 +80,7 @@ Point an MCP host at the published package:
 
 ```text
 command: npx
-args:    ["-y", "iaf-agent-bridge@1.0.2"]
+args:    ["-y", "iaf-agent-bridge@1.1.0"]
 ```
 
 A source checkout can use `node` and `dist/cli.js` after `npm run build`. Then ask the supervisor to implement the work with Cursor and to call `delegate` again with the returned `sessionId` while requested work remains.
@@ -94,7 +94,7 @@ A source checkout can use `node` and `dist/cli.js` after `npm run build`. Then a
 | Cursor | Plugin manifest for marketplace submission. Do not use it to delegate from Cursor to Cursor. | [docs/marketplaces.md](docs/marketplaces.md) |
 | Any stdio MCP client | `node` + `dist/cli.js` | [docs/installation.md](docs/installation.md) |
 
-npm install (`npx -y iaf-agent-bridge`) installs `1.0.2`. See [docs/installation.md](docs/installation.md) and [docs/release.md](docs/release.md).
+npm install (`npx -y iaf-agent-bridge`) installs `1.1.0`. See [docs/installation.md](docs/installation.md) and [docs/release.md](docs/release.md).
 
 ## Tools
 

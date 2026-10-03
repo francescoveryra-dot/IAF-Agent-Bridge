@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, statSync, symlinkSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -8,6 +8,7 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { setLogLevel } from "../dist/log.js";
 import { createAllowlist, parseProjectList } from "../dist/remote/allowlist.js";
 import { startLocalMcp, type LocalHandlers } from "../dist/remote/local-mcp.js";
+import { setupChatgpt } from "../dist/remote/setup.js";
 
 function textOf(result: { content?: Array<{ text?: string }> }): string {
   return result.content?.[0]?.text ?? "";
@@ -165,4 +166,21 @@ test("rejects unknown projects, overlap, and oversized results", async () => {
     await client.close();
     await server.close();
   }
+});
+
+test("setup stores a private config for a generic project alias", async () => {
+  const dir = workspace();
+  const project = join(dir, "my-project");
+  mkdirSync(project);
+  const config = join(dir, "chatgpt.json");
+  const saved = await setupChatgpt(`my-project=${project}`, {
+    IAF_CHATGPT_CONFIG: config,
+    IAF_CHATGPT_SOCKET: join(dir, "chatgpt.sock"),
+  });
+  assert.equal(saved.configPath, config);
+  assert.equal(statSync(config).mode & 0o777, 0o600);
+  const body = JSON.parse(readFileSync(config, "utf8")) as { projects: Record<string, string> };
+  assert.equal(body.projects["my-project"], realpathSync(project));
+  assert.equal(JSON.stringify(body).includes("sk-"), false);
+  await assert.rejects(() => setupChatgpt("bad/name=/tmp", { IAF_CHATGPT_CONFIG: join(dir, "bad.json") }));
 });

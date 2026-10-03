@@ -78,6 +78,8 @@ async function main(): Promise<void> {
     process.stdout.write(`IAF Agent Bridge ${summary.version}\n`);
     process.stdout.write(`Cursor found: ${summary.found}\n`);
     process.stdout.write(`Cursor authenticated: ${summary.authenticated}\n`);
+    if (!summary.found) process.stdout.write("status: CURSOR_NOT_FOUND\n");
+    else if (!summary.authenticated) process.stdout.write("status: CURSOR_NOT_AUTHENTICATED\n");
     const configured = await setupChatgpt(projects.join(","));
     process.stdout.write(`Approved projects saved locally: ${configured.configPath}\n`);
     let tunnelClient = false;
@@ -89,10 +91,13 @@ async function main(): Promise<void> {
     }
     process.stdout.write(`tunnel-client: ${tunnelClient ? "found" : "not installed"}\n`);
     if (!tunnelClient) {
-      process.stdout.write("Install the official binary from the openai/tunnel-client GitHub release. Do not use a third-party build.\n");
+      process.stdout.write("status: TUNNEL_NOT_CONFIGURED\n");
+      process.stdout.write("Install the official binary from the openai/tunnel-client GitHub release. The tested release during development was 0.0.15. Do not use a third-party build.\n");
     }
+    if (summary.found && summary.authenticated) process.stdout.write("status: READY\n");
     process.stdout.write("Next on this computer: iaf-agent-bridge chatgpt\n");
-    process.stdout.write("The OpenAI tunnel and its restricted runtime key are created in your Platform account. This command does not create them.\n");
+    process.stdout.write("Create the Secure MCP Tunnel and a restricted runtime key in your own OpenAI account. This bridge does not create them and does not detect your ChatGPT plan.\n");
+    process.stdout.write("delegate from normal ChatGPT works only when that workspace exposes Full MCP write tools.\n");
     if (!summary.found || !summary.authenticated) process.exitCode = 1;
     return;
   }

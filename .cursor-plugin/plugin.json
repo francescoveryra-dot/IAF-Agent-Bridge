@@ -1,7 +1,7 @@
 {
   "name": "iaf-agent-bridge",
   "displayName": "IAF Agent Bridge",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "ChatGPT and Codex supervise. IAF Agent Bridge transports the prompt and the Cursor session. Cursor implements. If this plugin is installed inside Cursor, do not call delegate; the server refuses self-delegation.",
   "author": {
     "name": "francescoveryra-dot"

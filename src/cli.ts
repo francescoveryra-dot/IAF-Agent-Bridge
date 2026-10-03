@@ -109,10 +109,11 @@ async function main(): Promise<void> {
       process.exit(1);
     }
     const projects = loadProjectConfig(chatgptConfigPath());
+    const useTcp = process.platform === "win32" || process.env.IAF_CHATGPT_LISTEN === "tcp";
     const server = await startLocalMcp({
       allowlist: createAllowlist(projects),
-      socketPath: process.env.IAF_CHATGPT_LISTEN === "tcp" ? undefined : chatgptSocketPath(),
-      allowLoopbackTcp: process.env.IAF_CHATGPT_LISTEN === "tcp",
+      socketPath: useTcp ? undefined : chatgptSocketPath(),
+      allowLoopbackTcp: useTcp,
       port: 0,
     });
     if (server.socketPath) {
@@ -121,6 +122,7 @@ async function main(): Promise<void> {
       process.stdout.write(`${server.socketPath}\n`);
     } else {
       process.stdout.write(`IAF ChatGPT MCP listening at ${server.mcpUrl}\n`);
+      process.stdout.write("This listener is loopback only. Unix sockets are the Personal Private default on macOS and Linux.\n");
     }
     const stop = () => {
       void server.close().finally(() => process.exit(0));

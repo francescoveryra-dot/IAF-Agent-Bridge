@@ -22,7 +22,7 @@ Cursor on the same computer
 Cursor's parent-turn result back to that ChatGPT tool call
 ```
 
-There is no IAF account, IAF API key, or IAF-hosted gateway. The local process calls Cursor directly. It does not generate the next prompt.
+There is no IAF account, IAF API key, or IAF-hosted gateway. The local process calls Cursor directly. It does not generate the next prompt. macOS and Linux listen on a mode 600 Unix socket. Windows uses loopback TCP because that platform does not provide the same socket permission. Neither mode listens on a public address.
 
 `tunnel-client` can dial Streamable HTTP on this machine. The documented form is a channel-qualified URL with `unix-socket`. See [tunnel-client configuration](https://github.com/openai/tunnel-client/blob/master/docs/configuration.md). A second MCP bearer is not required for this socket: other operating-system users cannot connect to a mode `600` socket, and the public internet cannot connect to it. A bearer pasted into ChatGPT would travel through OpenAI with the forwarded `Authorization` header, so Personal Private does not ask for one. TCP loopback remains available only as an explicit test listener because other local users can reach `127.0.0.1`.
 

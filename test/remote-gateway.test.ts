@@ -49,9 +49,11 @@ test("the personal server refuses a public bind and an unauthenticated token", a
   try {
     const missing = await fetch(server.mcpUrl, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
     assert.equal(missing.status, 401);
-    const socket = await startLocalMcp({ allowlist, socketPath: join(workspace(), "chatgpt.sock") });
-    assert.equal(statSync(socket.socketPath ?? "").mode & 0o777, 0o600);
-    await socket.close();
+    if (process.platform !== "win32") {
+      const socket = await startLocalMcp({ allowlist, socketPath: join(workspace(), "chatgpt.sock") });
+      assert.equal(statSync(socket.socketPath ?? "").mode & 0o777, 0o600);
+      await socket.close();
+    }
   } finally {
     await server.close();
   }
@@ -178,7 +180,7 @@ test("setup stores a private config for a generic project alias", async () => {
     IAF_CHATGPT_SOCKET: join(dir, "chatgpt.sock"),
   });
   assert.equal(saved.configPath, config);
-  assert.equal(statSync(config).mode & 0o777, 0o600);
+  if (process.platform !== "win32") assert.equal(statSync(config).mode & 0o777, 0o600);
   const body = JSON.parse(readFileSync(config, "utf8")) as { projects: Record<string, string> };
   assert.equal(body.projects["my-project"], realpathSync(project));
   assert.equal(JSON.stringify(body).includes("sk-"), false);

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "iaf-agent-bridge": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "iaf-agent-bridge"],
+      "cwd": "./"
+    }
+  }
+}

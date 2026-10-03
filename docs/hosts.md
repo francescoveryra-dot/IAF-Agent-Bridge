@@ -2,6 +2,18 @@
 
 One stdio server. The host configuration changes. Replace `CLONE` with the absolute path of your clone.
 
+## ChatGPT Desktop
+
+ChatGPT and Codex share one plugin directory. The current OpenAI guide says plugins can be used in Chat and in Work on the desktop app, and in Codex there: [Plugins](https://developers.openai.com/codex/plugins). A public directory listing requires a reviewed submission. This repository is not in that public directory. Searching chatgpt.com for the name will not show it until OpenAI lists it.
+
+Local use does not need an OpenAI API key. Install the Git marketplace in the ChatGPT desktop Plugins directory, then start a new conversation and mention `@iaf-agent-bridge`.
+
+The portable package is root `plugin.json` plus root `mcp.json`. `mcp.json` starts `npx -y iaf-agent-bridge` in the plugin directory. That is the local stdio server. It is not an HTTP endpoint, and this project does not publish a tunnel or a public MCP URL. OpenAI's developer-mode connector for ChatGPT on the web expects a public HTTPS endpoint or an OpenAI Secure MCP Tunnel, which is a different product path and is not part of this install.
+
+On the 2026-10-03 desktop build, ChatGPT Work could call `doctor` through the existing Codex-format plugin. A normal Chat conversation in the same app did not receive `delegate`, `cancel`, or `doctor`. That is a product-surface limit observed on that account, not something this repository can force. If a new Chat still has no IAF tools after installing the portable package, use Work or Codex in the desktop app. Those surfaces already launch this local server.
+
+Do not infer a quota change from the surface name. This bridge does not call the OpenAI API. Whichever ChatGPT or Codex mode is open is the mode that runs the supervisor model.
+
 ## Codex
 
 The Codex plugin starts `node` with `./bin/iaf-agent-bridge.mjs` and `"cwd": "."`. Codex resolves that working directory from the plugin checkout, not from the project you are editing. The launcher builds `dist/cli.js` when it is missing, then runs the MCP server. A marketplace install does not contain `dist/` because the build output is not committed.

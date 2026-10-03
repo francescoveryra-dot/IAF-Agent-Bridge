@@ -1,4 +1,5 @@
 {
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "iaf-agent-bridge",
   "version": "1.0.2",
   "description": "Continue Cursor Agent sessions from an MCP supervisor until the requested work is done.",
@@ -15,5 +16,21 @@
     "acp"
   ],
   "skills": "./skills/",
-  "mcpServers": "./.mcp.copilot.json"
+  "mcpServers": "./.mcp.copilot.json",
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "IAF Agent Bridge",
+        "shortDescription": "Continue Cursor sessions until the work is done",
+        "developerName": "francescoveryra-dot",
+        "category": "Developer Tools",
+        "capabilities": ["Read", "Write"],
+        "websiteURL": "https://github.com/francescoveryra-dot/IAF-Agent-Bridge",
+        "privacyPolicyURL": "https://github.com/francescoveryra-dot/IAF-Agent-Bridge/blob/main/PRIVACY.md",
+        "termsOfServiceURL": "https://github.com/francescoveryra-dot/IAF-Agent-Bridge/blob/main/TERMS.md",
+        "logo": "./assets/logo.svg",
+        "defaultPrompt": "Have Cursor implement this, then continue the same Cursor session until the requested work is complete."
+      }
+    }
+  }
 }

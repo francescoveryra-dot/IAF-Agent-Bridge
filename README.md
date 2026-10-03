@@ -51,7 +51,9 @@ No OpenAI API key is required.
 | npm | AVAILABLE | `npx -y iaf-agent-bridge@1.0.1` |
 | Official MCP Registry | AVAILABLE | [`io.github.francescoveryra-dot/iaf-agent-bridge` 1.0.1](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.francescoveryra-dot%2Fiaf-agent-bridge/versions/1.0.1) |
 | Cursor plugin | DIRECT INSTALL AVAILABLE | `agent plugin marketplace add https://github.com/francescoveryra-dot/IAF-Agent-Bridge.git` |
-| Cursor Marketplace | NOT LISTED | Submission requires a signed-in publisher at [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish). |
+| Cursor Marketplace | NOT LISTED | Sign in at [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish), then submit this repository. Review is manual. |
+| Claude Code | DIRECT INSTALL AVAILABLE | `claude plugin marketplace add francescoveryra-dot/IAF-Agent-Bridge` then `claude plugin install iaf-agent-bridge@iaf-agent-bridge` |
+| GitHub Copilot CLI | DIRECT INSTALL AVAILABLE | `copilot plugin marketplace add francescoveryra-dot/IAF-Agent-Bridge` then `copilot plugin install iaf-agent-bridge@iaf-agent-bridge` |
 | Codex / ChatGPT GitHub plugin | DIRECT INSTALL AVAILABLE | `codex plugin marketplace add https://github.com/francescoveryra-dot/IAF-Agent-Bridge.git --ref main` then `codex plugin add iaf-agent-bridge@iaf-agent-bridge` |
 | OpenAI plugin directory | NOT APPLICABLE for this local server | The public directory reviews a hosted HTTPS MCP endpoint. This bridge runs on your machine and talks to your local Cursor CLI. |
 | VS Code MCP gallery | NOT LISTED | VS Code browses the GitHub MCP registry. This server is in the Official MCP Registry and is not in that gallery. Add it with `npx -y iaf-agent-bridge`. |

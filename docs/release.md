@@ -1,15 +1,10 @@
 # Release
 
-GitHub Release [v1.0.0](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.0.0) is public. The tag peels to commit `97128e776c796968cea38d2885caf3a22ffb35ce`. The release is not a draft and not a prerelease. Its assets are `iaf-agent-bridge-1.0.0.tgz`, `sbom.cdx.json`, and `SHA256SUMS`.
+[npm `iaf-agent-bridge@1.0.1`](https://www.npmjs.com/package/iaf-agent-bridge) is the current public package. GitHub Release [v1.0.1](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.0.1) peels to `13e3cb0e55467040259a54ac5e423eaaaf9b0fdf`.
 
-npm package `iaf-agent-bridge` is not on the public registry. Publication stopped because the npm credential on this machine was rejected. Do not publish another version to work around that. When an authorized npm account is available, publish `1.0.0` from that same tag:
+[v1.0.0](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.0.0) remains public and peels to `97128e776c796968cea38d2885caf3a22ffb35ce`. Its npm tarball does not contain `mcpName`.
 
-```shell
-git checkout v1.0.0
-npm publish --access public
-```
-
-Prefer npm trusted publishing over a long-lived token. Do not commit a token. After npm publication, register `server.json` with the official MCP Registry. That registry requires the published npm package and an `mcpName` field that matches `io.github.francescoveryra-dot/iaf-agent-bridge`.
+The Official MCP Registry entry [`io.github.francescoveryra-dot/iaf-agent-bridge`](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.francescoveryra-dot%2Fiaf-agent-bridge/versions/latest) version `1.0.1` is public and `active`. It points at npm package `iaf-agent-bridge` version `1.0.1` with stdio transport.
 
 ## Cut a later release
 

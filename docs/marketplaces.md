@@ -1,13 +1,13 @@
 # Marketplaces
 
-Statuses below were checked on 2026-10-02 against the public repository and the services named here.
+Statuses below were checked on 2026-10-03 against the public npm registry, the Official MCP Registry, and the public repository.
 
 | Channel | Status | Install | Notes |
 | --- | --- | --- | --- |
 | GitHub source | PUBLISHED | `git clone --branch v1.0.0 https://github.com/francescoveryra-dot/IAF-Agent-Bridge.git` | Tag `v1.0.0` is the release commit. A fresh clone builds and `node dist/cli.js --version` prints `1.0.0`. |
-| GitHub Release | PUBLISHED | [v1.0.0](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.0.0) | Public release. Assets: `iaf-agent-bridge-1.0.0.tgz`, `sbom.cdx.json`, `SHA256SUMS`. |
-| npm | READY-BUT-AUTH-BLOCKED | Not on the registry | `GET https://registry.npmjs.org/iaf-agent-bridge` returned 404. The machine's npm credential was rejected, so `npm publish --access public` did not create the package. |
-| MCP registry | READY-BUT-AUTH-BLOCKED | Not registered | The official registry requires the public npm package first. `server.json` stays a local descriptor until that package exists. |
+| GitHub Release | PUBLISHED | [v1.0.1](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.0.1) is current. [v1.0.0](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.0.0) remains available. | `v1.0.1` peels to `13e3cb0`. `v1.0.0` peels to `97128e7`. |
+| npm | PUBLISHED | `npx -y iaf-agent-bridge@1.0.1` | Latest is `iaf-agent-bridge@1.0.1`: https://www.npmjs.com/package/iaf-agent-bridge. `1.0.0` remains published and has no `mcpName`. |
+| MCP registry | PUBLISHED | [`io.github.francescoveryra-dot/iaf-agent-bridge` 1.0.1](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.francescoveryra-dot%2Fiaf-agent-bridge/versions/1.0.1) | Status `active`. Package `iaf-agent-bridge@1.0.1`, transport `stdio`. |
 | Codex | PUBLIC-INSTALL-VERIFIED | `codex plugin marketplace add https://github.com/francescoveryra-dot/IAF-Agent-Bridge.git --ref main` then `codex plugin add iaf-agent-bridge@iaf-agent-bridge` | Verified with Codex CLI 0.160.0 against commit `97128e7`. Tools `delegate`, `cancel`, and `doctor` were visible. This is a GitHub marketplace import, not a listing in the OpenAI plugin directory. |
 | OpenAI plugin directory | READY-BUT-HUMAN-SUBMISSION-REQUIRED | Not listed | Public directory submission is the [plugin submission portal](https://developers.openai.com/plugins/deploy/submission). It requires a signed-in verified developer and personal review attestations. |
 | Claude Code | PUBLIC-INSTALL-VERIFIED | `claude plugin marketplace add https://github.com/francescoveryra-dot/IAF-Agent-Bridge.git` | `claude plugin validate --strict` passed. A fresh clone was added as a local marketplace. Claude Code uses repository marketplaces. There is no separate directory listing for this plugin. |

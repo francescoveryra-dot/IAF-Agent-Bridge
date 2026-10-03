@@ -21,8 +21,8 @@ Evidence is from this repository on 2026-10-02. "Ready" means the artifact exist
 | Claude marketplace | Public repository install verified | Fresh clone added with `claude plugin marketplace add` | No central directory |
 | Codex plugin | Public GitHub install verified | Codex CLI 0.160.0 installed `iaf-agent-bridge@iaf-agent-bridge` from this repository at `97128e7` | Not listed in the OpenAI plugin directory |
 | Copilot | Public GitHub install verified | Copilot CLI 1.0.91 installed `iaf-agent-bridge@iaf-agent-bridge` v1.0.0 | Repository marketplace, not the default `copilot-plugins` catalog |
-| npm package | Not published | Name is absent from the public registry | Authenticate to npm, then `npm publish --access public` from tag `v1.0.0` |
-| MCP registry | Not submitted | `server.json` | Blocked until the npm package exists |
+| npm package | PUBLISHED | `iaf-agent-bridge@1.0.1` is latest. `1.0.0` remains published | https://www.npmjs.com/package/iaf-agent-bridge |
+| MCP registry | PUBLISHED | `io.github.francescoveryra-dot/iaf-agent-bridge` version `1.0.1`, status active | https://registry.modelcontextprotocol.io/v0.1/servers/io.github.francescoveryra-dot%2Fiaf-agent-bridge/versions/1.0.1 |
 | Generic MCP | Documented | `docs/hosts.md` | Configuration only |
 | Fresh installation | Recorded in the final report | HTTPS clone, install, test, doctor | none |
 | Cursor ACP and resume | Ready | `scripts/acceptance.mjs` | none |

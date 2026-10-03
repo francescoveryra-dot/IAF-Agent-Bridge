@@ -4,10 +4,11 @@ MCP server that lets Codex, Claude Code, or another stdio host send work to Curs
 
 The bridge carries the prompt, the session, and Cursor's reply. The supervisor decides what happens next. Cursor does the implementation.
 
-**Status:** [GitHub Release v1.0.0](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.0.0) is published. The npm package is not published yet.
+**Status:** [npm `iaf-agent-bridge@1.0.1`](https://www.npmjs.com/package/iaf-agent-bridge) is the current public package. [GitHub Release v1.0.1](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.0.1) matches it. [v1.0.0](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.0.0) remains published. The Official MCP Registry entry is [`io.github.francescoveryra-dot/iaf-agent-bridge`](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.francescoveryra-dot%2Fiaf-agent-bridge/versions/latest) version `1.0.1`.
 
 [![CI](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/actions/workflows/test.yml/badge.svg)](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/actions/workflows/test.yml)
-[![GitHub Release](https://img.shields.io/github/v/release/francescoveryra-dot/IAF-Agent-Bridge)](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.0.0)
+[![npm](https://img.shields.io/npm/v/iaf-agent-bridge)](https://www.npmjs.com/package/iaf-agent-bridge)
+[![GitHub Release](https://img.shields.io/github/v/release/francescoveryra-dot/IAF-Agent-Bridge)](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.0.1)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](package.json)
 
@@ -73,7 +74,7 @@ Replace the path with your clone. Then ask the supervisor to implement the work 
 | Cursor | Plugin manifest for marketplace submission. Do not use it to delegate from Cursor to Cursor. | [docs/marketplaces.md](docs/marketplaces.md) |
 | Any stdio MCP client | `node` + `dist/cli.js` | [docs/installation.md](docs/installation.md) |
 
-npm install (`npx iaf-agent-bridge`) is prepared and not published yet. See [docs/release.md](docs/release.md).
+npm install (`npx -y iaf-agent-bridge`) installs `1.0.1`. See [docs/installation.md](docs/installation.md) and [docs/release.md](docs/release.md).
 
 ## Tools
 

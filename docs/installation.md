@@ -38,13 +38,13 @@ Run only the command for a marketplace you added.
 
 ## npm
 
-The package name `iaf-agent-bridge` is not on the registry yet. After it is published, the command will be:
+PUBLISHED. The current package is [`iaf-agent-bridge@1.0.1`](https://www.npmjs.com/package/iaf-agent-bridge).
 
 ```shell
-npx -y iaf-agent-bridge
+npx -y iaf-agent-bridge@1.0.1
 ```
 
-Until then, use the clone above.
+`1.0.0` remains on the registry. It does not include `mcpName`. `1.0.1` does, and that is the version registered with the Official MCP Registry.
 
 ## Checks a source checkout can run
 

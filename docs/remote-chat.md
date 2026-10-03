@@ -1,89 +1,78 @@
-# Remote Chat proof of concept
+# Personal Private ChatGPT
 
-Normal ChatGPT Chat does not launch the local stdio server. A remote supervisor has to call a streamable HTTP MCP server. This document is the proof of concept for that path. It is not the installed local plugin, and it is not a public endpoint.
+Normal ChatGPT Chat does not launch the local stdio server used by Codex, Work, Claude Code, or Copilot. Those hosts stay on that local server. Normal Chat uses a separate path that stays on the user's computer.
 
-## Decision
+The architectural claim is narrow. ChatGPT and OpenAI process the conversation because ChatGPT is the supervisor. IAF infrastructure is not in that path: IAF does not receive, proxy, or store the prompts, Cursor replies, source, paths, or credentials. This is not a claim that no third party can see the content.
 
-ChatGPT Sites is not the transport. [Hosting a plugin with ChatGPT Sites](https://help.openai.com/en/articles/20001547-hosting-a-plugin-with-chatgpt-sites) lets ChatGPT or Codex add an MCP server whose tools read and update that Site. The server runs with the Site. It does not open an outbound connection from this Mac, and it does not speak Cursor ACP.
-
-The viable shape is a remote MCP gateway plus a local connector:
+## Personal Private
 
 ```
 normal ChatGPT Chat
-        |  streamable HTTP MCP, bearer token
+        |  the user's own Secure MCP Tunnel
         v
-IAF gateway  (loopback in this proof of concept)
-        |  outbound poll from the Mac
+tunnel-client on the user's computer
+        |  Unix socket, mode 600
         v
-IAF connector
-        |  existing delegate / Cursor ACP
+local IAF MCP server
+        |  existing Bridge / Cursor ACP
         v
-Cursor parent turn
+Cursor on the same computer
         |
         v
-unchanged result back to the same ChatGPT tool call
+Cursor's parent-turn result back to that ChatGPT tool call
 ```
 
-The gateway does not call an LLM and does not write the next prompt. ChatGPT remains the supervisor. The connector accepts a `projectId` and resolves it through a local allowlist. A filesystem path in the tool call is rejected.
+There is no IAF account, IAF API key, or IAF-hosted gateway. The local process calls Cursor directly. It does not generate the next prompt.
 
-## What ChatGPT can call
+`tunnel-client` can dial Streamable HTTP on this machine. The documented form is a channel-qualified URL with `unix-socket`. See [tunnel-client configuration](https://github.com/openai/tunnel-client/blob/master/docs/configuration.md). A second MCP bearer is not required for this socket: other operating-system users cannot connect to a mode `600` socket, and the public internet cannot connect to it. A bearer pasted into ChatGPT would travel through OpenAI with the forwarded `Authorization` header, so Personal Private does not ask for one. TCP loopback remains available only as an explicit test listener because other local users can reach `127.0.0.1`.
 
-[ChatGPT Developer mode](https://developers.openai.com/api/docs/guides/developer-mode) is the supported way to attach a remote MCP server to ChatGPT. It is available to Plus, Pro, Business, Enterprise, and Education accounts on the web. The connector speaks SSE or streamable HTTP. Write tools require confirmation unless the user remembers an approval for that conversation.
+The OpenAI tunnel service does queue the MCP request and the tool result. That is OpenAI's path, not IAF's. [Secure MCP Tunnel](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels) describes it. `tunnel-client` also bounds a downstream call by `MCP_CONNECTION_MAX_TTL`, which defaults to 10 minutes. A longer Cursor turn can be cut off there. Job polling is not part of this release.
 
-[Build an MCP server](https://developers.openai.com/plugins/build/mcp-server) requires a public HTTPS `/mcp` endpoint for a submitted plugin. [Secure MCP Tunnel](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels) can reach a private server without inbound ports, including from a developer-mode app. The tunnel client needs a Platform API key (`CONTROL_PLANE_API_KEY`) and a `tunnel_id`. That key is a control-plane credential, not a supervisor model call. This repository does not create one. The tunnel does not satisfy public plugin submission.
+## What each party holds
 
-The Help Center article [Developer mode and MCP apps in ChatGPT](https://help.openai.com/en/articles/12584461) still says full write MCP is in beta for Business, Enterprise, and Edu, and that Pro accounts are limited to read or fetch. The developer-mode guide says write tools are available on Plus and Pro as well. Those two OpenAI pages disagree. A personal account has to be tested before `delegate` can be assumed to run.
-
-Official pages do not state a numeric limit for repeated MCP calls inside one ChatGPT turn, and they do not state the tool-call timeout. A blocking `delegate` is the proof-of-concept tool because that is the same parent-turn wait the local bridge already uses. If a live ChatGPT call is cut off, the next change is a job id that ChatGPT polls. That polling is not implemented here, because the timeout is not in the official docs and has not been measured on this account.
-
-Quota for normal Chat plus a remote MCP tool is not stated. Treat it as unmeasured.
-
-## Run the loopback proof
-
-Use two different tokens. Do not pass them on the command line.
-
-```shell
-export IAF_GATEWAY_CHAT_TOKEN='replace-with-a-long-random-token'
-export IAF_GATEWAY_CONNECTOR_TOKEN='replace-with-a-different-long-random-token'
-export IAF_GATEWAY_URL='http://127.0.0.1:8787'
-export IAF_REMOTE_PROJECTS='demo=/absolute/path/to/a/temporary/project'
-iaf-agent-bridge gateway
-```
-
-In another shell, with the same connector token, gateway URL, and project list:
-
-```shell
-iaf-agent-bridge connector
-```
-
-The gateway listens on `127.0.0.1` only. ChatGPT cannot reach that address. Reaching normal Chat requires either a TLS endpoint you choose to publish, or Secure MCP Tunnel after you create the Platform credential. Neither is started by these commands.
-
-## Threats
-
-| Threat | Mitigation in this proof | Still open |
+| Secret | Where it lives | IAF receives it |
 | --- | --- | --- |
-| Anonymous caller reaches Cursor | Separate bearer tokens for ChatGPT and the connector. Wrong or missing tokens get 401. | Tokens are shared secrets. A stolen ChatGPT token can request delegate until it is rotated. |
-| Path traversal | `projectId` is a short name. The connector maps it to an allowlisted directory. | The allowlist is local configuration. A wrong entry is still a directory Cursor can edit. |
-| Replay of a finished call | The same `clientRequestId` returns the stored result and does not start another turn. | A connector crash after Cursor has started, but before the result is posted, can leave the gateway waiting until its deadline. A later new request can run the work again. |
-| Two turns in one Cursor session | The gateway rejects a second `delegate` for a session that is still running. | Two sessions can still run one after another on this connector. |
-| Oversized body | MCP and result posts are capped. An oversized Cursor result is replaced by an explicit error, not a summary. | The cap is a limit, not a review of the content. |
-| Prompt injection from the repository | The gateway forwards Cursor's reply unchanged. | ChatGPT can still obey hostile text inside that reply. Confirmation of write tools is the product control. |
-| Public scanning | The proof binds to loopback. | A later hosted gateway needs TLS, the bearer check, rate limits, and no anonymous route to Cursor. |
-| Gateway restart | Jobs live in memory. | A restart drops running calls. Cursor may still finish locally. |
-| Secret leakage | Logs record job and project ids, not prompts or tokens. Tool results omit the local workspace path. | Doctor output can still include the local Cursor executable path, as the local doctor does. |
+| `CONTROL_PLANE_API_KEY` | The user's shell, for `tunnel-client` | No |
+| `tunnel_id` | Platform tunnel settings and the user's shell | No |
+| Cursor credentials | The local Cursor CLI | No |
+| Project directories | The local config file, mode `600` | No |
 
-No OpenAI inference API is called. `OPENAI_API_KEY` is not read.
+`tunnel-client` reads the runtime key from the environment. That is the official mechanism. This bridge does not copy it into Keychain, a repository, or an IAF service. Creating the key, leaving the tunnel open, and tunnel poll traffic have no published price. The Responses API MCP tool bills tokens; this mode does not call that API.
 
-## Development tunnel
+## Setup
 
-`npm run remote:chat-poc` builds nothing by itself. Run `npm run build` first. The helper creates a temporary workspace outside this repository, writes two gateway credentials to a mode `600` file under that state directory, and does not print them. The allowlist contains only `demo` for that workspace. It then calls `doctor` through the gateway MCP endpoint.
+```shell
+npx iaf-agent-bridge setup chatgpt --project demo=/absolute/path/to/one/project
+npx iaf-agent-bridge chatgpt
+```
 
-Secure MCP Tunnel starts only when both `CONTROL_PLANE_API_KEY` and `CONTROL_PLANE_TUNNEL_ID` are already in the environment and `tunnel-client` is installed. The helper does not create a Platform key, a tunnel, or a public listener.
+`setup` checks the local Cursor CLI, stores the canonical directory for each alias, and refuses the filesystem root and the home directory. ChatGPT later sends only the alias, such as `demo`. If that directory is replaced by a symlink to somewhere else, delegate fails closed.
 
-Official pages do not say that creating the control-plane key, leaving the tunnel connected, or the tunnel poll itself has a price. [MCP servers](https://developers.openai.com/api/docs/guides/tools-connectors-mcp) says the Responses API MCP tool bills tokens used to import tools or make tool calls, with no extra per-call fee. That sentence is about the Responses API. This proof does not call that API. [Pricing](https://developers.openai.com/api/docs/pricing) does not list Secure MCP Tunnel.
+The command does not create an OpenAI key. After `chatgpt` is running, the remaining account steps are:
 
-The runtime key should be a Restricted Platform Runtime API key with Tunnels Read and Use only. Tunnel creation in the dashboard needs Tunnels Read and Manage. Do not use an All key or an admin key for `tunnel-client`. Source: [tunnel-client permissions](https://github.com/openai/tunnel-client/blob/master/docs/permissions.md) and [Secure MCP Tunnel](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels).
+1. Create a tunnel at [Platform tunnel settings](https://platform.openai.com/settings/organization/tunnels) for the ChatGPT workspace you will use.
+2. Create a Restricted runtime key at [Platform API keys](https://platform.openai.com/settings/organization/api-keys) with Tunnels Read and Use only. Export it as `CONTROL_PLANE_API_KEY`. Do not paste it into ChatGPT.
+3. Run official `tunnel-client` with `CONTROL_PLANE_TUNNEL_ID` and `--mcp.server-url "channel=main,url=http://127.0.0.1/mcp,unix-socket=SOCKET"`, using the socket path printed by `chatgpt`.
+4. On chatgpt.com, turn on Developer mode under Settings, Security and login. In Plugins, add an app, choose Tunnel, and select that tunnel. Use a new normal Chat, not Work or Codex.
 
-`tunnel-client` forwards the inbound `Authorization` header to the private MCP server. ChatGPT's developer-mode app has to send the gateway chat token. The tunnel control-plane key is not that token and must not be pasted into ChatGPT.
+`delegate` stays a write tool. OpenAI's developer-mode guide and the Help Center still disagree about Plus and Pro write access. If the plan refuses write tools, relabeling `delegate` as read-only is not a fix.
 
-In ChatGPT on the web, turn on Developer mode under Settings, Security and login. Create an app from Plugins with the plus button, choose Tunnel, and select the tunnel. Open a new normal Chat, choose Developer mode from the plus menu, and select the app. Do not use Work or Codex for this proof. Write tools ask for confirmation unless you remember the approval for that conversation. [ChatGPT Developer mode](https://developers.openai.com/api/docs/guides/developer-mode).
+A public ChatGPT directory listing requires a public HTTPS MCP endpoint. Pointing that endpoint at IAF would put IAF on the content path, so this product is distributed through npm and GitHub instead. Each user attaches their own tunnel.
+
+## Other profiles
+
+Enterprise self-hosted is the same shape inside the customer's network: their tunnel or gateway, their bridge, their Cursor. IAF still is not on the content path. No enterprise service is built here.
+
+An IAF-hosted relay is not implemented. It would be considered only if a later design kept plaintext content and decryption keys off IAF infrastructure. That design does not exist.
+
+## Logging
+
+There is no IAF telemetry. Info logs record a job id, the project alias, and durations. They do not record prompts, Cursor replies, paths, or credentials.
+
+## Threats the bridge controls
+
+Internet clients cannot open the socket. Another local account cannot open a mode `600` socket. ChatGPT cannot pass a filesystem path; aliases are checked again on each call, including after a symlink swap. A repeated `clientRequestId` does not start a second turn. A second delegate for a session that is still running is rejected. Oversized results are not forwarded. Logs and doctor results omit paths and secrets.
+
+## Threats outside this process
+
+A stolen tunnel runtime key lets someone else poll that user's tunnel until the key is revoked. OpenAI can see the MCP payloads because the tunnel service queues them. A malicious repository or Cursor reply can try to steer ChatGPT. A process running as the same user can talk to the socket and can also read the user's files. Those are OpenAI, Cursor, and operating-system boundaries.

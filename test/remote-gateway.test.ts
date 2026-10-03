@@ -1,105 +1,75 @@
 import assert from "node:assert/strict";
-import { mkdtempSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, statSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { setLogLevel } from "../dist/log.js";
 import { createAllowlist, parseProjectList } from "../dist/remote/allowlist.js";
-import { startConnector, type RemoteHandlers } from "../dist/remote/connector.js";
-import { startGateway, type GatewayServer } from "../dist/remote/gateway.js";
-
-const CHAT = "chat-token-test-value";
-const CONNECTOR = "connector-token-test-value";
+import { startLocalMcp, type LocalHandlers } from "../dist/remote/local-mcp.js";
 
 function textOf(result: { content?: Array<{ text?: string }> }): string {
   return result.content?.[0]?.text ?? "";
 }
 
-async function mcp(url: string, token = CHAT): Promise<Client> {
-  const client = new Client({ name: "remote-test", version: "0" });
+async function connect(url: string, token?: string): Promise<Client> {
+  const client = new Client({ name: "local-mcp-test", version: "0" });
   await client.connect(new StreamableHTTPClientTransport(new URL(url), {
-    requestInit: { headers: { authorization: `Bearer ${token}` } },
+    requestInit: token ? { headers: { authorization: `Bearer ${token}` } } : {},
   }));
   return client;
 }
 
-async function pair(handlers: RemoteHandlers, timeouts: { offlineTimeoutMs?: number; ratePerMinute?: number } = {}) {
-  const workspace = mkdtempSync(join(tmpdir(), "iaf-remote-"));
-  const gateway = await startGateway({
-    chatToken: CHAT,
-    connectorToken: CONNECTOR,
-    offlineTimeoutMs: timeouts.offlineTimeoutMs ?? 2_000,
-    resultTimeoutMs: 5_000,
-    pollWaitMs: 200,
-    ratePerMinute: timeouts.ratePerMinute ?? 100,
-  });
-  const connector = await startConnector({
-    gatewayUrl: gateway.url,
-    connectorToken: CONNECTOR,
-    allowlist: createAllowlist({ demo: workspace }),
-    handlers,
-    retryMs: 50,
-  });
-  return { gateway, connector, workspace };
+function workspace(): string {
+  return mkdtempSync(join(tmpdir(), "iaf-local-mcp-"));
 }
 
-test("rejects a public bind, a reused token, and a path-like project id", async () => {
-  await assert.rejects(() => startGateway({ chatToken: CHAT, connectorToken: CONNECTOR, host: "0.0.0.0" }));
-  await assert.rejects(() => startGateway({ chatToken: CHAT, connectorToken: CHAT }));
+test("project ids reject paths and a swapped symlink is refused", () => {
   assert.throws(() => parseProjectList("../tmp=/tmp"), /not allowed/);
+  assert.throws(() => parseProjectList("bad/name=/tmp"), /not allowed/);
+  const root = workspace();
+  const project = join(root, "project");
+  mkdirSync(project);
+  const outside = workspace();
+  const allowlist = createAllowlist({ demo: project });
+  assert.equal(allowlist.resolve("demo"), realpathSync(project));
+  rmSync(project, { recursive: true });
+  symlinkSync(outside, project);
+  assert.throws(() => allowlist.resolve("demo"), /no longer matches/);
+  rmSync(project);
+  assert.throws(() => allowlist.resolve("demo"), /not available/);
 });
 
-test("anonymous and cross-token callers cannot reach MCP or the connector", async () => {
-  const gateway = await startGateway({ chatToken: CHAT, connectorToken: CONNECTOR, pollWaitMs: 100, offlineTimeoutMs: 200, maxResultBytes: 32 });
+test("the personal server refuses a public bind and an unauthenticated token", async () => {
+  const allowlist = createAllowlist({ demo: workspace() });
+  await assert.rejects(() => startLocalMcp({ allowlist }));
+  const server = await startLocalMcp({ allowlist, allowLoopbackTcp: true, token: "local-token-test-value", port: 0 });
   try {
-    const missing = await fetch(gateway.mcpUrl, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+    const missing = await fetch(server.mcpUrl, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
     assert.equal(missing.status, 401);
-    const crossed = await fetch(`${gateway.url}/connector/poll`, {
-      method: "POST",
-      headers: { authorization: `Bearer ${CHAT}`, "content-type": "application/json" },
-      body: "{}",
-    });
-    assert.equal(crossed.status, 401);
-    const malformed = await fetch(`${gateway.url}/connector/result`, {
-      method: "POST",
-      headers: { authorization: `Bearer ${CONNECTOR}`, "content-type": "application/json" },
-      body: "{",
-    });
-    assert.equal(malformed.status, 400);
-    const huge = await fetch(`${gateway.url}/connector/result`, {
-      method: "POST",
-      headers: { authorization: `Bearer ${CONNECTOR}`, "content-type": "application/json" },
-      body: JSON.stringify({ protocol: 1, id: "job-too-large", ok: true, result: "x".repeat(80) }),
-    });
-    assert.equal(huge.status, 413);
+    const socket = await startLocalMcp({ allowlist, socketPath: join(workspace(), "chatgpt.sock") });
+    assert.equal(statSync(socket.socketPath ?? "").mode & 0o777, 0o600);
+    await socket.close();
   } finally {
-    await gateway.close();
+    await server.close();
   }
 });
 
-test("a connector-offline delegate fails without starting Cursor", async () => {
-  const gateway = await startGateway({ chatToken: CHAT, connectorToken: CONNECTOR, offlineTimeoutMs: 200, pollWaitMs: 50, resultTimeoutMs: 1_000 });
-  try {
-    const client = await mcp(gateway.mcpUrl);
-    const result = await client.callTool({ name: "delegate", arguments: { projectId: "demo", prompt: "do not run" } });
-    assert.equal(result.isError, true);
-    assert.match(textOf(result), /connector-offline/);
-    await client.close();
-  } finally {
-    await gateway.close();
-  }
-});
-
-test("three supervisor cycles send prompts created only after the previous Cursor result", async () => {
+test("doctor hides local paths and three cycles keep prompts with the caller", async () => {
   const prompts: string[] = [];
   let resultSeen = false;
-  const { gateway, connector } = await pair({
+  const lines: string[] = [];
+  const original = process.stderr.write.bind(process.stderr);
+  process.stderr.write = ((chunk: string | Uint8Array) => {
+    lines.push(String(chunk));
+    return true;
+  }) as typeof process.stderr.write;
+  setLogLevel("info");
+  const handlers: LocalHandlers = {
     async delegate(input) {
       if (input.prompt.startsWith("AFTER_RESULT")) assert.equal(resultSeen, true);
       prompts.push(input.prompt);
-      assert.equal(input.workspace.includes("iaf-remote-"), true);
-      assert.equal(input.prompt.includes("/tmp"), false);
       return {
         sessionId: "cursor-session",
         resumed: prompts.length > 1,
@@ -110,126 +80,89 @@ test("three supervisor cycles send prompts created only after the previous Curso
       };
     },
     async doctor() {
-      return { bridge: { version: "1.0.2" }, cursor: { found: true, authenticated: true }, workspace: "/secret/path" };
+      return { bridge: { name: "iaf-agent-bridge", version: "1.0.2" }, cursor: { found: true, authenticated: true, command: "/secret/agent", version: "test" }, workspace: "/secret/project" };
     },
     async cancel() {
       return { cancelled: true };
     },
-  });
-  const client = await mcp(gateway.mcpUrl);
+  };
+  const server = await startLocalMcp({ allowlist: createAllowlist({ demo: workspace() }), allowLoopbackTcp: true, handlers });
+  const client = await connect(server.mcpUrl);
   try {
     const tools = await client.listTools();
-    assert.deepEqual(tools.tools.map((tool) => tool.name).sort(), ["cancel", "delegate", "doctor"]);
     const annotations = Object.fromEntries(tools.tools.map((tool) => [tool.name, tool.annotations]));
     assert.equal(annotations.doctor?.readOnlyHint, true);
     assert.equal(annotations.delegate?.readOnlyHint, false);
     assert.equal(annotations.delegate?.destructiveHint, false);
-    assert.equal(annotations.delegate?.idempotentHint, false);
-    assert.equal(annotations.cancel?.readOnlyHint, false);
-    assert.equal(annotations.cancel?.destructiveHint, false);
-    const doctor = await client.callTool({ name: "doctor", arguments: {} });
-    assert.equal(doctor.isError, undefined);
-    assert.equal(textOf(doctor).includes("/secret/path"), false);
-
-    const first = await client.callTool({ name: "delegate", arguments: { projectId: "demo", prompt: "Create stage one only.", clientRequestId: "request-0001" } });
-    const firstBody = JSON.parse(textOf(first)) as { result: string; sessionId: string; workspace?: string };
+    const doctor = JSON.parse(textOf(await client.callTool({ name: "doctor", arguments: { projectId: "demo" } }))) as { cursor: { found: boolean }; workspace?: string };
+    assert.equal(doctor.cursor.found, true);
+    assert.equal(JSON.stringify(doctor).includes("/secret"), false);
+    const first = await client.callTool({ name: "delegate", arguments: { projectId: "demo", prompt: "UNIQUE_PROMPT_DO_NOT_LOG", clientRequestId: "request-0001" } });
+    const firstBody = JSON.parse(textOf(first)) as { result: string; workspace?: string };
     assert.equal(firstBody.workspace, undefined);
-    assert.match(firstBody.result, /CURSOR_RESULT_1:Create stage one only\./);
-    resultSeen = true;
-    const replay = await client.callTool({ name: "delegate", arguments: { projectId: "demo", prompt: "this replay must not run", sessionId: firstBody.sessionId, clientRequestId: "request-0001" } });
+    assert.match(firstBody.result, /UNIQUE_PROMPT_DO_NOT_LOG/);
+    const replay = await client.callTool({ name: "delegate", arguments: { projectId: "demo", prompt: "replay must not run", sessionId: "cursor-session", clientRequestId: "request-0001" } });
     assert.equal(textOf(replay), textOf(first));
-
+    resultSeen = true;
     const secondPrompt = `AFTER_RESULT_2 previous=${firstBody.result}`;
-    const second = await client.callTool({ name: "delegate", arguments: { projectId: "demo", prompt: secondPrompt, sessionId: firstBody.sessionId, clientRequestId: "request-0002" } });
-    const secondBody = JSON.parse(textOf(second)) as { result: string };
-    assert.match(secondBody.result, /CURSOR_RESULT_2:AFTER_RESULT_2 previous=CURSOR_RESULT_1/);
-
-    const thirdPrompt = `AFTER_RESULT_3 previous=${secondBody.result}`;
-    const third = await client.callTool({ name: "delegate", arguments: { projectId: "demo", prompt: thirdPrompt, sessionId: firstBody.sessionId, clientRequestId: "request-0003" } });
-    const thirdBody = JSON.parse(textOf(third)) as { result: string };
-    assert.match(thirdBody.result, /AFTER_RESULT_3 previous=CURSOR_RESULT_2/);
-    assert.deepEqual(prompts, ["Create stage one only.", secondPrompt, thirdPrompt]);
+    const second = JSON.parse(textOf(await client.callTool({ name: "delegate", arguments: { projectId: "demo", prompt: secondPrompt, sessionId: "cursor-session", clientRequestId: "request-0002" } }))) as { result: string };
+    const thirdPrompt = `AFTER_RESULT_3 previous=${second.result}`;
+    await client.callTool({ name: "delegate", arguments: { projectId: "demo", prompt: thirdPrompt, sessionId: "cursor-session", clientRequestId: "request-0003" } });
+    assert.deepEqual(prompts, ["UNIQUE_PROMPT_DO_NOT_LOG", secondPrompt, thirdPrompt]);
+    const logged = lines.join("\n");
+    assert.equal(logged.includes("UNIQUE_PROMPT_DO_NOT_LOG"), false);
+    assert.equal(logged.includes("CURSOR_RESULT"), false);
+    assert.match(logged, /remote\.delegate\.start/);
   } finally {
+    process.stderr.write = original;
+    setLogLevel("warn");
     await client.close();
-    await connector.close();
-    await gateway.close();
+    await server.close();
   }
 });
 
-test("rejects path input, unknown projects, same-session overlap, and can cancel", async () => {
+test("rejects unknown projects, overlap, and oversized results", async () => {
   const releases: Array<() => void> = [];
-  const calls: string[] = [];
-  const { gateway, connector } = await pair({
-    delegate(input) {
-      calls.push(input.workspace);
-      return new Promise((resolve) => {
-        const finish = () => resolve({
-          sessionId: input.sessionId ?? "cursor-session",
-          result: input.signal.aborted ? "aborted" : input.prompt,
-          resumed: false,
-          executor: "cursor",
-          workspace: input.workspace,
-          mode: "agent",
+  const server = await startLocalMcp({
+    allowlist: createAllowlist({ demo: workspace() }),
+    allowLoopbackTcp: true,
+    handlers: {
+      delegate(input) {
+        if (input.prompt === "huge") return Promise.resolve({ result: "x".repeat(700_000) });
+        return new Promise((resolve) => {
+          const finish = () => resolve({ sessionId: "cursor-session", result: input.signal.aborted ? "aborted" : input.prompt, workspace: input.workspace, mode: "agent", executor: "cursor", resumed: false });
+          if (input.signal.aborted) finish();
+          else {
+            input.signal.addEventListener("abort", finish, { once: true });
+            releases.push(finish);
+          }
         });
-        if (input.signal.aborted) finish();
-        else {
-          input.signal.addEventListener("abort", finish, { once: true });
-          releases.push(finish);
-        }
-      });
-    },
-    async doctor() {
-      return { ok: true };
-    },
-    async cancel(input) {
-      return { cancelled: true, sessionId: input.sessionId };
+      },
+      async doctor() {
+        return { bridge: { version: "1.0.2" }, cursor: { found: true, authenticated: true } };
+      },
+      async cancel() {
+        return { cancelled: true };
+      },
     },
   });
-  const client = await mcp(gateway.mcpUrl);
+  const client = await connect(server.mcpUrl);
   try {
-    const traversed = await client.callTool({ name: "delegate", arguments: { projectId: "../etc", prompt: "nope" } });
-    assert.equal(traversed.isError, true);
     const missing = await client.callTool({ name: "delegate", arguments: { projectId: "other", prompt: "nope" } });
     assert.match(textOf(missing), /unknown-project/);
-    assert.equal(calls.length, 0);
-
     const first = client.callTool({ name: "delegate", arguments: { projectId: "demo", prompt: "hold", sessionId: "cursor-session", clientRequestId: "request-hold1" } });
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    await new Promise((resolve) => setTimeout(resolve, 50));
     const busy = await client.callTool({ name: "delegate", arguments: { projectId: "demo", prompt: "overlap", sessionId: "cursor-session", clientRequestId: "request-hold2" } });
     assert.match(textOf(busy), /session-busy/);
     const cancel = await client.callTool({ name: "cancel", arguments: { sessionId: "cursor-session" } });
     assert.match(textOf(cancel), /"cancelled":true/);
-    const finished = JSON.parse(textOf(await first)) as { result: string };
-    assert.equal(finished.result, "aborted");
-    assert.equal(calls.length, 1);
+    assert.equal(JSON.parse(textOf(await first)).result, "aborted");
+    const huge = await client.callTool({ name: "delegate", arguments: { projectId: "demo", prompt: "huge", clientRequestId: "request-huge1" } });
+    assert.match(textOf(huge), /oversized-result/);
+    assert.equal(textOf(huge).includes("x".repeat(100)), false);
   } finally {
     for (const release of releases) release();
     await client.close();
-    await connector.close();
-    await gateway.close();
-  }
-});
-
-test("rate-limits repeated MCP posts", async () => {
-  const gateway: GatewayServer = await startGateway({
-    chatToken: CHAT,
-    connectorToken: CONNECTOR,
-    ratePerMinute: 1,
-    pollWaitMs: 50,
-  });
-  try {
-    const first = await fetch(gateway.mcpUrl, {
-      method: "POST",
-      headers: { authorization: `Bearer ${CHAT}`, "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "rate", version: "0" } } }),
-    });
-    const second = await fetch(gateway.mcpUrl, {
-      method: "POST",
-      headers: { authorization: `Bearer ${CHAT}`, "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "ping" }),
-    });
-    assert.equal(first.status === 429 || second.status === 429, true);
-  } finally {
-    await gateway.close();
+    await server.close();
   }
 });

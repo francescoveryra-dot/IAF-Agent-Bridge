@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { execFileSync } from "node:child_process";
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -79,8 +80,19 @@ async function main(): Promise<void> {
     process.stdout.write(`Cursor authenticated: ${summary.authenticated}\n`);
     const configured = await setupChatgpt(projects.join(","));
     process.stdout.write(`Approved projects saved locally: ${configured.configPath}\n`);
-    process.stdout.write(`Next: iaf-agent-bridge chatgpt\n`);
-    process.stdout.write("OpenAI tunnel setup is a separate account step. This command does not create a key.\n");
+    let tunnelClient = false;
+    try {
+      execFileSync("/usr/bin/which", ["tunnel-client"], { stdio: "ignore" });
+      tunnelClient = true;
+    } catch {
+      tunnelClient = false;
+    }
+    process.stdout.write(`tunnel-client: ${tunnelClient ? "found" : "not installed"}\n`);
+    if (!tunnelClient) {
+      process.stdout.write("Install the official binary from the openai/tunnel-client GitHub release. Do not use a third-party build.\n");
+    }
+    process.stdout.write("Next on this computer: iaf-agent-bridge chatgpt\n");
+    process.stdout.write("The OpenAI tunnel and its restricted runtime key are created in your Platform account. This command does not create them.\n");
     if (!summary.found || !summary.authenticated) process.exitCode = 1;
     return;
   }

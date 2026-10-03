@@ -3,6 +3,12 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Personal Private mode for normal ChatGPT Chat. `setup chatgpt` stores project aliases locally. `chatgpt` listens on a user-owned socket for the user's own Secure MCP Tunnel. IAF does not run a relay. This is in source and is not the published npm package yet.
+
 ## [1.0.2] - 2026-10-03
 
 ### Fixed

@@ -46,6 +46,8 @@ npx -y iaf-agent-bridge@1.0.2
 
 `1.0.0` remains on the registry and does not include `mcpName`. `1.0.1` and `1.0.2` include it. `1.0.2` is the version registered as latest with the Official MCP Registry.
 
+`setup chatgpt` and `chatgpt` are in this source tree for normal ChatGPT Chat. They are not in npm `1.0.2`. See [remote-chat.md](remote-chat.md).
+
 ## Checks a source checkout can run
 
 ```shell

@@ -44,7 +44,9 @@ Cursor Agent is the only production executor. Codex and Claude Code are supervis
 - The [Cursor CLI](https://cursor.com/docs/cli/overview) on your `PATH` as `agent`.
 - `agent login` completed on that machine.
 
-No OpenAI API key is required.
+No OpenAI API key is required for the local stdio server.
+
+Normal ChatGPT Chat is a separate mode. It uses your own Secure MCP Tunnel and a local socket. The commands `setup chatgpt` and `chatgpt` are in this source tree. They are not in the published npm package `1.0.2`. IAF does not host a relay for that mode. Details: [docs/remote-chat.md](docs/remote-chat.md).
 
 ## Install
 

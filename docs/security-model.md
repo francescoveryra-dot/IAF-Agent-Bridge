@@ -20,6 +20,7 @@ Cursor Agent
 - ACP lines are capped. Reply text is capped. Handshake, turn, and optional idle timers bound a call.
 - Doctor output is an authentication boolean. Account email and tokens are not copied into it.
 - Logs pass through redaction. Redaction is not a guarantee.
+- Personal Private ChatGPT mode listens on a user-owned socket, mode `600`. ChatGPT sends a project alias, not a path. The alias is resolved locally and checked again if the directory is replaced. That mode does not send content to an IAF server.
 
 ## Residual risk
 

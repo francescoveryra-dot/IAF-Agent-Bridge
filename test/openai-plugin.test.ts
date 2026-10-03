@@ -13,7 +13,8 @@ test("the portable OpenAI package launches the published npm server", () => {
   const mcp = readJson("mcp.json");
   const codex = readJson(".codex-plugin/plugin.json");
   assert.equal(plugin.$schema, "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json");
-  assert.equal(plugin.mcpServers, "./.mcp.copilot.json");
+  assert.equal("mcpServers" in plugin, false);
+  assert.equal("skills" in plugin, false);
   const openai = (plugin.extensions as { "com.openai": { interface: { displayName: string; logo: string } } })["com.openai"];
   assert.equal(openai.interface.displayName, "IAF Agent Bridge");
   assert.equal(openai.interface.logo, "./assets/logo.svg");

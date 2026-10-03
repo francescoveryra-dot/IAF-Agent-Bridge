@@ -15,8 +15,6 @@
     "cursor",
     "acp"
   ],
-  "skills": "./skills/",
-  "mcpServers": "./.mcp.copilot.json",
   "extensions": {
     "com.openai": {
       "interface": {

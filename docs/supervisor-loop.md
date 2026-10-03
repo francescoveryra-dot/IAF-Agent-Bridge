@@ -2,6 +2,8 @@
 
 The supervisor reads `result` as a pasted Cursor reply and chooses one state.
 
+`delegate` does not return when Cursor first writes something that sounds finished. It returns after that Cursor turn has stopped: implementation, tools, sub-agents, review, and follow-up work included, as far as Cursor's own turn boundary goes. The bridge does not decide that the work is done. It only waits until Cursor's parent turn is terminal, then hands you the reply. A second `delegate` for a session that is still running is rejected. Start the follow-up after the result arrives.
+
 ## CONTINUE
 
 Requested work remains and Cursor can still do it. That includes a plan, a TODO list, a mock, a missing layer, or a claim of completion that the reply does not support. Call `delegate` again with the same `sessionId` and a prompt that names what is left.

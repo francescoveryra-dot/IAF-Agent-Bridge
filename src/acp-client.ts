@@ -31,6 +31,14 @@ export interface AcpClientOptions {
   onActivity?: () => void;
 }
 
+interface TurnGate {
+  promise: Promise<string>;
+  resolve: (stopReason: string) => void;
+  reject: (err: BridgeError) => void;
+  settled: boolean;
+  stopReason?: string;
+}
+
 function record(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
 }
@@ -53,7 +61,10 @@ export class AcpClient {
   availableModes: string[] = [];
   imagesAccepted = false;
   sessionTitle: string | undefined;
+  tasksNoticed = 0;
   private child?: ChildProcess;
+  private cancelSent = false;
+  private turnGate?: TurnGate;
   private peer?: JsonRpcPeer;
   private spawnError?: BridgeError;
   private stderr = "";
@@ -86,6 +97,7 @@ export class AcpClient {
       const failure = new BridgeError("spawn-failed", `Cursor agent failed to start: ${message}`);
       if (this.peer) this.peer.rejectAll(failure);
       else this.spawnError = failure;
+      this.failTurn(failure);
     });
     child.stderr?.on("data", (chunk: Buffer) => {
       this.stderr = (this.stderr + this.stderrDecoder.write(chunk)).slice(-STDERR_CAP);
@@ -102,8 +114,15 @@ export class AcpClient {
         `Cursor agent exited (code=${code}${signal ? `, signal=${signal}` : ""})${detail ? `: ${detail}` : ""}`,
       ));
     };
-    child.once("exit", failExit);
-    child.once("close", failExit);
+    const failAndTurn = (code: number | null, signal: NodeJS.Signals | null) => {
+      failExit(code, signal);
+      this.failTurn(new BridgeError(
+        "agent-exit",
+        `Cursor agent exited (code=${code}${signal ? `, signal=${signal}` : ""})`,
+      ));
+    };
+    child.once("exit", failAndTurn);
+    child.once("close", failAndTurn);
     if (!child.stdout || !child.stdin) {
       throw new BridgeError("spawn-failed", "Cursor agent pipes were not available.");
     }
@@ -113,7 +132,9 @@ export class AcpClient {
       },
       onNotification: (method, params) => {
         if (method === "session/update") {
-          this.options.onUpdate?.(record(params)?.update ?? params);
+          const update = record(params)?.update ?? params;
+          this.observeUpdate(update);
+          this.options.onUpdate?.(update);
           return;
         }
         void this.dispatch(undefined, method, params);
@@ -234,19 +255,34 @@ export class AcpClient {
   }
 
   async prompt(sessionId: string, blocks: PromptBlock[], timeoutMs: number): Promise<{ stopReason?: string }> {
-    const result = record(await this.rpc("session/prompt", {
-      sessionId,
-      prompt: blocks,
-    }, timeoutMs));
-    const stopReason = result?.stopReason;
-    if (typeof stopReason !== "string") {
-      if (stopReason !== undefined) this.warnings.push("stopReason was not a string and was omitted");
-      return {};
+    const deadline = Date.now() + timeoutMs;
+    this.armTurn();
+    log("debug", `cursor.run.started session=${sessionId}`);
+    try {
+      const result = record(await this.rpc("session/prompt", {
+        sessionId,
+        prompt: blocks,
+      }, timeoutMs));
+      const accepted = result?.stopReason;
+      if (this.cancelSent) return { stopReason: "cancelled" };
+      if (typeof accepted === "string") {
+        log("debug", `cursor.run.terminal session=${sessionId} stop=${accepted} via=prompt`);
+        return { stopReason: accepted };
+      }
+      if (accepted !== undefined) this.warnings.push("stopReason was not a string and was omitted");
+      const remaining = Math.max(1, deadline - Date.now());
+      const stopReason = await this.waitForIdle(remaining);
+      if (this.cancelSent) return { stopReason: "cancelled" };
+      log("debug", `cursor.run.terminal session=${sessionId} stop=${stopReason} via=state`);
+      return { stopReason };
+    } finally {
+      this.turnGate = undefined;
     }
-    return { stopReason };
   }
 
   cancel(sessionId: string): void {
+    this.cancelSent = true;
+    log("debug", `delegate.cancelled session=${sessionId}`);
     try {
       this.peer?.notify("session/cancel", { sessionId });
     } catch (err) {
@@ -273,6 +309,56 @@ export class AcpClient {
     }
     this.peer?.close();
     return exited;
+  }
+
+  private armTurn(): void {
+    let resolve: (stopReason: string) => void = () => {};
+    let reject: (err: BridgeError) => void = () => {};
+    const promise = new Promise<string>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    promise.catch(() => {});
+    this.turnGate = { promise, resolve, reject, settled: false };
+  }
+
+  private waitForIdle(timeoutMs: number): Promise<string> {
+    const gate = this.turnGate;
+    if (!gate) return Promise.reject(new BridgeError("protocol", "Cursor turn gate is missing."));
+    if (gate.stopReason) return Promise.resolve(gate.stopReason);
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new BridgeError("turn-timeout", `Cursor did not report a terminal state within ${timeoutMs}ms.`));
+      }, timeoutMs);
+      gate.promise.then(
+        (stopReason) => {
+          clearTimeout(timer);
+          resolve(stopReason);
+        },
+        (err: BridgeError) => {
+          clearTimeout(timer);
+          reject(err);
+        },
+      );
+    });
+  }
+
+  private observeUpdate(update: unknown): void {
+    const body = record(update);
+    if (!body || body.sessionUpdate !== "state_update" || body.state !== "idle") return;
+    if (typeof body.stopReason !== "string") return;
+    const gate = this.turnGate;
+    if (!gate || gate.settled) return;
+    gate.settled = true;
+    gate.stopReason = body.stopReason;
+    gate.resolve(body.stopReason);
+  }
+
+  private failTurn(err: BridgeError): void {
+    const gate = this.turnGate;
+    if (!gate || gate.settled) return;
+    gate.settled = true;
+    gate.reject(err);
   }
 
   private rpc(method: string, params: unknown, timeoutMs = this.options.handshakeTimeoutMs): Promise<unknown> {
@@ -345,7 +431,13 @@ export class AcpClient {
         return;
       }
       if (method === "cursor/task" || method === "cursor/generate_image") {
-        this.warnings.push(`${method} was recorded and was not treated as a nested delegation`);
+        if (method === "cursor/task") {
+          this.tasksNoticed += 1;
+          const body = record(params);
+          const kind = body?.durationMs === undefined ? "started" : "completed";
+          log("debug", `cursor.task.${kind} count=${this.tasksNoticed}`);
+        }
+        this.warnings.push(`${method} was recorded and was not treated as turn completion`);
         if (id !== undefined) {
           this.peer?.respond(id, method === "cursor/task"
             ? { outcome: { outcome: "completed" } }

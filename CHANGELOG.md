@@ -3,6 +3,12 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- `delegate` now stays open until the Cursor parent turn is terminal. A prompt acceptance without `stopReason` waits for the ACP idle state. Text, tool updates, and sub-agent notices do not finish the call. A second `delegate` for a session that is still running is rejected.
+
 ## [1.0.1] - 2026-10-03
 
 ### Added

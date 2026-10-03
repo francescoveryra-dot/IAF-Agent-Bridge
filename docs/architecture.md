@@ -15,7 +15,7 @@ Workspace directory
 | `src/cli.ts` | `mcp`, `doctor`, `--version` |
 | `src/mcp-server.ts` | Tools |
 | `src/executor.ts` | Cursor is the only production executor |
-| `src/turn.ts` | One prompt, one result |
+| `src/turn.ts` | One prompt, one result, returned only when the Cursor turn is terminal |
 | `src/acp-client.ts` | Cursor ACP session |
 | `src/permissions.ts` | Allow or reject a permission request |
 | `src/discovery.ts` | Find the Cursor executable |

@@ -1,5 +1,6 @@
+import { existsSync, mkdirSync, watch, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import readline from "node:readline";
-import { writeFileSync } from "node:fs";
 
 const script = process.env.FAKE_ACP_SCRIPT || "stream";
 const command = process.env.FAKE_ACP_COMMAND || "npm test";
@@ -41,6 +42,141 @@ function permissionParams() {
       { optionId: "reject-once", kind: "reject_once", name: "Reject" },
     ],
   };
+}
+
+function update(sessionUpdate, extra = {}) {
+  send({ jsonrpc: "2.0", method: "session/update", params: { update: { sessionUpdate, ...extra } } });
+}
+
+function textUpdate(kind, text) {
+  update(kind, { content: { type: "text", text } });
+}
+
+function taskNotice(durationMs) {
+  send({
+    jsonrpc: "2.0",
+    method: "cursor/task",
+    params: {
+      toolCallId: `task-${durationMs ?? "open"}`,
+      description: "subagent",
+      prompt: "hidden",
+      subagentType: "explore",
+      ...(durationMs === undefined ? {} : { durationMs }),
+    },
+  });
+}
+
+function hold(name) {
+  const dir = process.env.FAKE_ACP_GATE;
+  if (!dir) return Promise.resolve();
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, name), "1");
+  const go = join(dir, `${name}.go`);
+  if (existsSync(go)) return Promise.resolve();
+  return new Promise((resolve) => {
+    const watcher = watch(dir, () => {
+      if (existsSync(go)) {
+        watcher.close();
+        resolve();
+      }
+    });
+  });
+}
+
+async function runLifecycle(message) {
+  const id = message.id;
+  const scenario = process.env.FAKE_ACP_CASE || "intermediate";
+  if (scenario === "intermediate") {
+    textUpdate("agent_message_chunk", "Implementation complete. Tests pass.");
+    await hold("after-text");
+    send({ jsonrpc: "2.0", id, result: { stopReason: "end_turn" } });
+    return;
+  }
+  if (scenario === "subagents") {
+    taskNotice();
+    textUpdate("agent_message_chunk", "Implementation complete. Tests pass.");
+    await hold("mid");
+    taskNotice(12);
+    textUpdate("agent_message_chunk", "Reviewed.");
+    await hold("after-task");
+    send({ jsonrpc: "2.0", id, result: { stopReason: "end_turn" } });
+    return;
+  }
+  if (scenario === "zero") {
+    update("tool_call_update", { toolCallId: "a", status: "completed" });
+    taskNotice(4);
+    await hold("zero");
+    textUpdate("agent_message_chunk", "Still working.");
+    update("tool_call", { toolCallId: "b", status: "in_progress" });
+    update("tool_call_update", { toolCallId: "b", status: "completed" });
+    textUpdate("agent_message_chunk", "Finished.");
+    send({ jsonrpc: "2.0", id, result: { stopReason: "end_turn" } });
+    return;
+  }
+  if (scenario === "respawn") {
+    taskNotice(1);
+    taskNotice(2);
+    await hold("reviewed");
+    taskNotice();
+    await hold("spawned");
+    taskNotice(3);
+    textUpdate("agent_message_chunk", "Retested.");
+    send({ jsonrpc: "2.0", id, result: { stopReason: "end_turn" } });
+    return;
+  }
+  if (scenario === "nested") {
+    taskNotice();
+    taskNotice();
+    textUpdate("agent_message_chunk", "partial");
+    await hold("nested-running");
+    taskNotice(8);
+    taskNotice(9);
+    textUpdate("agent_message_chunk", "Follow-up.");
+    await hold("follow-up");
+    send({ jsonrpc: "2.0", id, result: { stopReason: "end_turn" } });
+    return;
+  }
+  if (scenario === "aggregate") {
+    textUpdate("agent_message_chunk", "Message A. ");
+    update("tool_call", { toolCallId: "edit", status: "in_progress" });
+    textUpdate("agent_message_chunk", "Message B. ");
+    update("tool_call_update", { toolCallId: "edit", status: "completed" });
+    textUpdate("agent_message_chunk", "Message C.");
+    send({ jsonrpc: "2.0", id, result: { stopReason: "end_turn" } });
+    return;
+  }
+  if (scenario === "thoughts") {
+    textUpdate("agent_thought_chunk", "private plan");
+    textUpdate("agent_message_chunk", "visible");
+    send({ jsonrpc: "2.0", id, result: { stopReason: "end_turn" } });
+    return;
+  }
+  if (scenario === "v2") {
+    textUpdate("agent_message_chunk", "Implementation complete. Tests pass.");
+    send({ jsonrpc: "2.0", id, result: { messageId: "msg-1" } });
+    await hold("accepted");
+    update("state_update", { state: "running" });
+    textUpdate("agent_message_chunk", " Follow-up.");
+    await hold("running");
+    update("state_update", { state: "idle", stopReason: "end_turn" });
+    return;
+  }
+  if (scenario === "disconnect") {
+    textUpdate("agent_message_chunk", "partial");
+    process.exit(2);
+  }
+  if (scenario === "late") {
+    textUpdate("agent_message_chunk", "done");
+    send({ jsonrpc: "2.0", id, result: { stopReason: "end_turn" } });
+    update("state_update", { state: "idle", stopReason: "error" });
+    return;
+  }
+  if (scenario === "error-stop") {
+    textUpdate("agent_message_chunk", "failed");
+    send({ jsonrpc: "2.0", id, result: { stopReason: "error" } });
+    return;
+  }
+  send({ jsonrpc: "2.0", id, result: { stopReason: "end_turn" } });
 }
 
 async function finishPrompt(id, promptMessage) {
@@ -197,5 +333,8 @@ rl.on("line", (line) => {
     send({ jsonrpc: "2.0", id: message.id, result: {} });
     return;
   }
-  if (message.method === "session/prompt") void finishPrompt(message.id, message);
+  if (message.method === "session/prompt") {
+    if (script === "lifecycle") void runLifecycle(message);
+    else void finishPrompt(message.id, message);
+  }
 });

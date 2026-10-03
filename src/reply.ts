@@ -1,39 +1,17 @@
-const TERMINAL = new Set(["completed", "failed", "cancelled"]);
+const RESULT_CAP = 400_000;
 
 export class ReplyCollector {
   private chunks: string[] = [];
-  private discarded = "";
-  private readonly active = new Set<string>();
-  private sawTool = false;
-  private afterTools = false;
+  private length = 0;
 
   pushMessage(text: string): void {
-    if (!text) return;
-    if (this.sawTool && !(this.afterTools && this.active.size === 0)) return;
-    this.chunks.push(text);
+    if (!text || this.length >= RESULT_CAP) return;
+    const slice = text.length > RESULT_CAP - this.length ? text.slice(0, RESULT_CAP - this.length) : text;
+    this.chunks.push(slice);
+    this.length += slice.length;
   }
 
-  noteTool(id: string | undefined, status: string | undefined): void {
-    const terminal = status !== undefined && TERMINAL.has(status);
-    if (!this.sawTool) {
-      this.discarded = this.chunks.join("");
-      this.chunks = [];
-      this.sawTool = true;
-    }
-    if (id && !terminal) this.active.add(id);
-    if (terminal) {
-      if (id) this.active.delete(id);
-      if (this.active.size === 0) {
-        this.chunks = [];
-        this.afterTools = true;
-      }
-    }
-  }
-
-  finish(): { result: string; resultSource?: "pre-tool-fallback" } {
-    const current = this.chunks.join("");
-    if (current) return { result: current };
-    if (this.discarded) return { result: this.discarded, resultSource: "pre-tool-fallback" };
-    return { result: "" };
+  finish(): { result: string } {
+    return { result: this.chunks.join("") };
   }
 }

@@ -26,8 +26,8 @@ The tool returns one JSON object in a text block.
 | --- | --- |
 | `sessionId` | Pass this back to continue the same conversation. |
 | `resumed` | True when this turn loaded an existing session. |
-| `result` | Cursor's reply. Read it as a pasted answer. |
-| `resultSource` | `pre-tool-fallback` when the only text arrived before tools and no final answer followed. |
+| `result` | Cursor's visible reply for the completed turn, including text that arrived before, during, and after tools. Thoughts are omitted. |
+| `resultSource` | Omitted. Older builds used `pre-tool-fallback` when no text followed a tool. |
 | `stopReason` | Cursor's ACP stop reason when it sent one. |
 | `projectContextFiles` | Authoritative project files found at the workspace root, only when they exist. |
 | `filesReportedByEditTools` | Paths Cursor's edit tools reported. The git diff remains the workspace record. |

@@ -4,6 +4,8 @@ MCP server that lets Codex, Claude Code, or another stdio host send work to Curs
 
 The bridge carries the prompt, the session, and Cursor's reply. The supervisor decides what happens next. Cursor does the implementation.
 
+`delegate` returns only after that Cursor turn is finished. A message that says the work is complete does not end the call while Cursor is still running tools, sub-agents, or a follow-up. Cursor keeps control of that internal work. The supervisor sees one result, then chooses CONTINUE, COMPLETE, or BLOCKED.
+
 **Status:** [npm `iaf-agent-bridge@1.0.1`](https://www.npmjs.com/package/iaf-agent-bridge) is the current public package. [GitHub Release v1.0.1](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.0.1) matches it. [v1.0.0](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/releases/tag/v1.0.0) remains published. The Official MCP Registry entry is [`io.github.francescoveryra-dot/iaf-agent-bridge`](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.francescoveryra-dot%2Fiaf-agent-bridge/versions/latest) version `1.0.1`.
 
 [![CI](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/actions/workflows/test.yml/badge.svg)](https://github.com/francescoveryra-dot/IAF-Agent-Bridge/actions/workflows/test.yml)

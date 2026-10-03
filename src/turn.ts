@@ -5,6 +5,7 @@ import { discoverProjectContextFiles } from "./context-files.js";
 import { loadConfig, type BridgeConfig } from "./config.js";
 import { cursorLaunchSpec } from "./discovery.js";
 import { BridgeError } from "./errors.js";
+import { log } from "./log.js";
 import { resolveEffort } from "./model-config.js";
 import { ReplyCollector } from "./reply.js";
 import { assertWorkspace } from "./workspace.js";
@@ -118,21 +119,40 @@ export async function runTurn(input: TurnInput, hooks: TurnHooks = {}): Promise<
     const promptResult = await client.prompt(sessionId, blocks, turnTimeoutMs + 5_000);
     if (timedOut) throw timedOut;
     if (hooks.signal?.aborted) cancelRequested = true;
+    const stopReason = promptResult.stopReason;
+    if (cancelRequested || stopReason === "cancelled") {
+      throw new BridgeError("cancelled", "Cursor turn was cancelled before it finished.", {
+        sessionId,
+        partialResult: collector.finish().result || undefined,
+      });
+    }
+    if (stopReason === "error") {
+      throw new BridgeError("agent-error", "Cursor reported that the turn failed.", {
+        sessionId,
+        partialResult: collector.finish().result || undefined,
+      });
+    }
+    log("debug", `delegate.resolved session=${sessionId} stop=${stopReason ?? "none"}`);
     return buildResult({
       sessionId,
       resumed,
       text: collector.finish().result.slice(-RESULT_CAP),
-      resultSource: collector.finish().resultSource,
       mode,
       workspace,
       files,
       client,
-      stopReason: promptResult.stopReason,
+      stopReason,
       requestedModel: input.model,
       cancelRequested,
     });
   } catch (err) {
     if (timedOut) throw timedOut;
+    if (cancelRequested || hooks.signal?.aborted) {
+      throw new BridgeError("cancelled", "Cursor turn was cancelled before it finished.", {
+        sessionId,
+        partialResult: collector.finish().result || undefined,
+      });
+    }
     if (err instanceof BridgeError && sessionId && !err.sessionId) {
       throw new BridgeError(err.reason, err.message, { sessionId, partialResult: collector.finish().result || undefined, rpcCode: err.rpcCode });
     }
@@ -149,7 +169,6 @@ function buildResult(args: {
   sessionId: string;
   resumed: boolean;
   text: string;
-  resultSource?: "pre-tool-fallback";
   mode: AgentMode;
   workspace: string;
   files: Set<string>;
@@ -173,7 +192,6 @@ function buildResult(args: {
     mode: args.mode,
   };
   if (args.stopReason) result.stopReason = args.stopReason;
-  if (args.resultSource) result.resultSource = args.resultSource;
   if (contextFiles.length) result.projectContextFiles = contextFiles;
   if (reported.length) result.filesReportedByEditTools = reported;
   if (args.client.plan) result.plan = args.client.plan;
@@ -216,11 +234,6 @@ function absorbUpdate(update: unknown, collector: ReplyCollector, files: Set<str
   const kind = body.sessionUpdate;
   const contentText = textOf(body.content);
   if ((kind === "agent_message_chunk" || kind === "agent_message") && contentText) collector.pushMessage(contentText);
-  if (kind === "tool_call" || kind === "tool_call_update") {
-    const id = typeof body.toolCallId === "string" ? body.toolCallId : undefined;
-    const status = typeof body.status === "string" ? body.status : undefined;
-    collector.noteTool(id, status ?? (kind === "tool_call" ? "in_progress" : undefined));
-  }
   if (kind === "plan" && Array.isArray(body.entries)) {
     client.plan = {
       ...client.plan,

@@ -71,6 +71,48 @@ test("cancel distinguishes a live session from an unknown id", async () => {
   await mcp.close();
 });
 
+test("a second delegate for a busy session is rejected and other sessions still run", async () => {
+  let releaseA: () => void = () => {};
+  let releaseB: () => void = () => {};
+  let entered = 0;
+  let markA: () => void = () => {};
+  let markB: () => void = () => {};
+  const readyA = new Promise<void>((resolve) => { markA = resolve; });
+  const readyB = new Promise<void>((resolve) => { markB = resolve; });
+  const bridge = buildServer({
+    runTurn: async (input, hooks) => {
+      const sessionId = input.sessionId ?? "session-new";
+      const client = { cancel() {}, async stop() { return true; } } as unknown as AcpClient;
+      hooks?.onClient?.(client);
+      hooks?.onSession?.(sessionId, client);
+      entered += 1;
+      if (input.sessionId === "session-a") markA();
+      if (input.sessionId === "session-b") markB();
+      await new Promise<void>((resolve) => {
+        if (input.sessionId === "session-a") releaseA = resolve;
+        else releaseB = resolve;
+      });
+      return { sessionId, result: "done", resumed: Boolean(input.sessionId), executor: "cursor", workspace: "/tmp/project", mode: "agent" };
+    },
+  });
+  const mcp = await connect(bridge.server);
+  const first = mcp.callTool({ name: "delegate", arguments: { prompt: "First", workspace: "/tmp/project", sessionId: "session-a" } });
+  await readyA;
+  const busy = await mcp.callTool({ name: "delegate", arguments: { prompt: "Second", workspace: "/tmp/project", sessionId: "session-a" } });
+  assert.equal(busy.isError, true);
+  assert.match((busy.content as Array<{ text: string }>)[0]?.text ?? "", /session-busy/);
+  const other = mcp.callTool({ name: "delegate", arguments: { prompt: "Other", workspace: "/tmp/project", sessionId: "session-b" } });
+  await readyB;
+  assert.equal(entered, 2);
+  releaseA();
+  releaseB();
+  const doneA = await first;
+  const doneB = await other;
+  assert.equal(doneA.isError, undefined);
+  assert.equal(doneB.isError, undefined);
+  await mcp.close();
+});
+
 test("a Cursor host is refused", async () => {
   const bridge = buildServer({ runTurn: async () => ({ sessionId: "s", result: "no", resumed: false, executor: "cursor", workspace: "/tmp", mode: "agent" }) });
   const client = await connect(bridge.server, "cursor");

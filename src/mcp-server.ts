@@ -90,6 +90,7 @@ export function buildServer(deps: ServerDeps = {}): BridgeServer {
   const diagnose = deps.runDoctor ?? ((options?: DoctorOptions) => executor.diagnose(options));
   const forceGraceMs = deps.forceGraceMs ?? 5_000;
   const inFlight = new Map<string, Set<Handle>>();
+  const reserved = new Set<string>();
   const pending = new Set<Handle>();
   const seenSessions = new Set<string>();
   const server = new McpServer(
@@ -100,7 +101,7 @@ export function buildServer(deps: ServerDeps = {}): BridgeServer {
   server.registerTool(
     "delegate",
     {
-      description: "Send a prompt to Cursor Agent, or continue an existing Cursor session. Returns Cursor's reply and the sessionId to reuse. You decide CONTINUE, COMPLETE, or BLOCKED. Do not shell out to the agent binary.",
+      description: "Send a prompt to Cursor Agent and wait until that Cursor turn is terminal, including tool work and any sub-agent follow-up Cursor performs before it stops. Returns Cursor's reply and the sessionId to reuse. A second call for a session that is still running is rejected. You decide CONTINUE, COMPLETE, or BLOCKED. Do not shell out to the agent binary.",
       inputSchema: delegateInput,
       annotations: {
         title: "Send work to Cursor",
@@ -115,6 +116,17 @@ export function buildServer(deps: ServerDeps = {}): BridgeServer {
       if (blocked) return textResult(blocked, true);
       let handle: Handle | undefined;
       let activeSession: string | undefined;
+      const held = new Set<string>();
+      if (args.sessionId) {
+        if (reserved.has(args.sessionId)) {
+          return textResult(
+            "delegate failed [session-busy]: A Cursor turn is already running for this session. Wait for it to finish before sending another prompt.",
+            true,
+          );
+        }
+        reserved.add(args.sessionId);
+        held.add(args.sessionId);
+      }
       const progressToken = extra._meta?.progressToken;
       let progress = 0;
       const onProgress = (message: string) => {
@@ -145,6 +157,10 @@ export function buildServer(deps: ServerDeps = {}): BridgeServer {
           },
           onSession: (sessionId, client) => {
             activeSession = sessionId;
+            if (!held.has(sessionId)) {
+              reserved.add(sessionId);
+              held.add(sessionId);
+            }
             handle ??= { client, cancelRequested: false };
             pending.delete(handle);
             const handles = inFlight.get(sessionId) ?? new Set<Handle>();
@@ -160,6 +176,7 @@ export function buildServer(deps: ServerDeps = {}): BridgeServer {
       } catch (err) {
         return textResult(formatTurnError(err), true);
       } finally {
+        for (const id of held) reserved.delete(id);
         if (handle) pending.delete(handle);
         if (activeSession && handle) {
           const handles = inFlight.get(activeSession);
